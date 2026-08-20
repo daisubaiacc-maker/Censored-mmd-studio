@@ -1,5 +1,4 @@
 export type CensorshipEffect = 'mosaic' | 'solid' | 'blur';
-
 export type CensorshipRegionSpace = 'screen' | 'model';
 
 export interface CensorshipBinding {
@@ -9,13 +8,12 @@ export interface CensorshipBinding {
   offset?: [number, number, number];
 }
 
-/**
- * Persistent censorship scene data.
- *
- * Screen-space regions are useful for manual framing. Model-space bindings
- * are the long-term path for regions that follow bones/objects as the camera
- * and pose change.
- */
+export interface CensorshipObservationRule {
+  activateOnFocus: boolean;
+  activationGraceMs: number;
+}
+
+/** Persistent censorship scene data. Optical focus and censorship stay separate. */
 export interface CensorshipRegion {
   id: string;
   space: CensorshipRegionSpace;
@@ -28,4 +26,5 @@ export interface CensorshipRegion {
   pixelSize?: number;
   color?: number;
   binding?: CensorshipBinding;
+  observation?: CensorshipObservationRule;
 }
