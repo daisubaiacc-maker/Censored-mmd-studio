@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { FocusTarget, FocusTargetRegistry } from './FocusTargetRegistry';
+import { FocusTarget } from './FocusTargetRegistry';
+import { FocusTargetRegistry } from './FocusTargetRegistry';
 
 /** Resolves the current pointer position to the nearest registered MMD target hit by the camera ray. */
 export class PointerTargetResolver {
@@ -7,7 +8,7 @@ export class PointerTargetResolver {
 
   constructor(private readonly registry: FocusTargetRegistry) {}
 
-  resolve(pointer: THREE.Vector2, camera: THREE.Camera): FocusTarget | null {
+  resolve(pointer: THREE.Vector2, camera: THREE.Camera): { target: FocusTarget; distance: number } | null {
     this.raycaster.setFromCamera(pointer, camera);
     let best: { target: FocusTarget; distance: number } | null = null;
 
@@ -20,6 +21,6 @@ export class PointerTargetResolver {
       if (!best || distance < best.distance) best = { target, distance };
     }
 
-    return best?.target ?? null;
+    return best;
   }
 }
