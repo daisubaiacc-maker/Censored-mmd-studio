@@ -36,19 +36,23 @@ export class ProtectedInteractionRenderLoop {
     this.observations.update(focusState.targetId, deltaMs, this.observationRule);
 
     // 3. Reproject target-bound regions after animation/camera state is current.
+    //    This must happen before the final frame controller snapshot.
     this.boneRegions?.update(this.camera);
     this.censorshipFrames.update(this.camera, this.viewport);
 
-    // 4. Submit the final protected region set to the compositor.
+    // 4. Snapshot only the currently active protection regions.
     const rect = this.viewport.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width));
     const height = Math.max(1, Math.floor(rect.height));
-    this.compositor.setRegions(this.censorshipFrames.getRegions().map((region) => ({
+    const activeRegions = this.censorshipFrames.getRegions().filter((region) => region.enabled);
+    this.compositor.setRegions(activeRegions.map((region) => ({
       id: region.id,
       rect: region.rect,
-      enabled: region.enabled,
+      enabled: true,
       pixelSize: 12,
     })));
+
+    // 5. Render the protected frame after the mask snapshot is complete.
     this.compositor.render(this.scene, this.camera, width, height);
   }
 }
