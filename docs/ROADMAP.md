@@ -10,6 +10,7 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 - [x] Censorship render pipeline boundary
 - [x] Extensible censorship region data model
 - [x] Model registry and scene-object metadata boundary
+- [x] Pointer-focus state foundation
 
 ## Phase 1 — MMD foundation
 
@@ -27,10 +28,13 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 - [x] Screen-space mosaic shader foundation
 - [x] Explicit screen/model region spaces
 - [x] Model, bone, and object binding boundary
+- [x] Observation rule data model for focus-triggered activation
 - [ ] Interactive region creation, move, resize, and delete
 - [ ] Multiple simultaneous regions
 - [ ] Attach a region to a model mesh
 - [ ] Attach a region to an MMD bone and update its projected position every frame
+- [ ] Focus-triggered censorship state machine
+- [ ] Dwell/focus-lock options
 - [ ] Mask/shape-based censorship options
 - [ ] Solid-color and blur effects
 - [ ] Per-region effect settings and presets
@@ -38,6 +42,9 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 
 ## Phase 3 — Studio controls
 
+- [ ] Pointer-focus mode UI
+- [ ] Depth-of-field render pass driven by focus state
+- [ ] Focus target visualization
 - [ ] Orbit/pan/zoom camera controls
 - [ ] Transform gizmos
 - [ ] Bone selection
@@ -47,13 +54,13 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 
 ## Phase 4 — Scene and export
 
-- [ ] Scene save/load, including censorship regions and bindings
+- [ ] Scene save/load, including focus settings and censorship regions/bindings
 - [ ] Camera presets
-- [ ] Screenshot/export workflow using the same censorship pipeline as the viewport
+- [ ] Screenshot/export workflow using the same focus + censorship pipeline as the viewport
 - [ ] Animation timeline
-- [ ] Animated censorship regions following bones
+- [ ] Animated focus targets and censorship regions following bones
 - [ ] Performance profiling and optimization
 
 ## Architectural rule
 
-Censorship must remain a renderer-level system, not a cosmetic UI layer. Any future export, screenshot, animation render, or alternate renderer should consume the same censorship scene data and produce the same intended protected output.
+Censorship must remain a renderer-level system, not a cosmetic UI layer. Any future export, screenshot, animation render, or alternate renderer should consume the same censorship and focus scene data and produce the same intended protected output.
