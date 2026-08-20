@@ -44,6 +44,15 @@ export class FocusSystem {
     this.pointer.y = -(clientY / height) * 2 + 1;
   }
 
+  /** Allows an external target resolver to provide the selected target without a second raycast. */
+  setResolvedTarget(targetId: string | null, focusDistance?: number): void {
+    if (!this.state.enabled) return;
+    this.state.targetId = targetId;
+    if (focusDistance !== undefined && Number.isFinite(focusDistance)) {
+      this.state.focusDistance = Math.max(0, focusDistance);
+    }
+  }
+
   update(camera: THREE.Camera, scene: THREE.Scene): FocusState {
     if (!this.state.enabled) return { ...this.state };
     this.raycaster.setFromCamera(this.pointer, camera);
