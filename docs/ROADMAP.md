@@ -9,20 +9,24 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 - [x] Modular source layout
 - [x] Censorship render pipeline boundary
 - [x] Extensible censorship region data model
+- [x] Model registry and scene-object metadata boundary
 
 ## Phase 1 — MMD foundation
 
 - [x] MMD loading boundary for PMX/PMD
+- [x] Register loaded models and inspect meshes/bones
 - [ ] Load a real PMX/PMD asset in the browser
 - [ ] Model materials and textures
 - [ ] Basic model selection
 - [ ] Scene reset and model removal
-- [ ] Identify model meshes, bones, and stable IDs for future censorship targets
+- [ ] Stable model/bone IDs for saved scenes
 
 ## Phase 2 — Censorship core
 
 - [x] Define censorship regions as scene data
 - [x] Screen-space mosaic shader foundation
+- [x] Explicit screen/model region spaces
+- [x] Model, bone, and object binding boundary
 - [ ] Interactive region creation, move, resize, and delete
 - [ ] Multiple simultaneous regions
 - [ ] Attach a region to a model mesh
