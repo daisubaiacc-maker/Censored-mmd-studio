@@ -32,7 +32,8 @@ The project is intentionally **censorship-first**. MMD loading and studio contro
 - [x] Model, bone, and object binding boundary
 - [x] Observation rule data model for focus-triggered activation
 - [x] Dwell/focus-lock state foundation
-- [ ] Interactive region creation, move, resize, and delete
+- [x] Region move/resize interaction model
+- [ ] Interactive region creation, delete, and viewport handle UI
 - [ ] Multiple simultaneous regions
 - [ ] Attach a region to a model mesh
 - [ ] Attach a region to an MMD bone and update its projected position every frame
