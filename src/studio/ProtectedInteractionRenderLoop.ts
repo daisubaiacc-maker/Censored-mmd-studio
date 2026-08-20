@@ -7,8 +7,9 @@ import { FocusSystem } from './FocusSystem';
 import { DepthOfFieldSystem } from './DepthOfFieldSystem';
 import { BoneRegionFrameController } from './BoneRegionFrameController';
 import { MmdAnimationFrameController } from '../mmd/MmdAnimationFrameController';
+import { PointerFocusController } from './PointerFocusController';
 
-/** Complete frame boundary: animation -> focus -> observation -> region tracking -> protected render. */
+/** Complete frame boundary: animation -> pointer focus -> observation -> region tracking -> protected render. */
 export class ProtectedInteractionRenderLoop {
   private lastTime = performance.now();
 
@@ -24,7 +25,12 @@ export class ProtectedInteractionRenderLoop {
     private readonly observationRule: ObservationRule,
     private readonly boneRegions?: BoneRegionFrameController,
     private readonly animation?: MmdAnimationFrameController,
+    private readonly pointerFocus?: PointerFocusController,
   ) {}
+
+  handlePointerMove(event: PointerEvent): void {
+    this.pointerFocus?.handlePointerMove(event, this.viewport, this.camera, this.scene);
+  }
 
   render(now = performance.now()): void {
     const deltaMs = Math.max(0, now - this.lastTime);
@@ -33,11 +39,11 @@ export class ProtectedInteractionRenderLoop {
     // 0. Advance MMD animation/pose first so all following systems see the same pose.
     this.animation?.update(deltaMs);
 
-    // 1. Resolve pointer focus and depth-of-field state.
+    // 1. Resolve pointer focus and depth-of-field state from the registered focus targets.
     const focusState = this.focus.update(this.camera, this.scene);
     this.dof.update(focusState.focusDistance);
 
-    // 2. Observation may change which censorship regions are active.
+    // 2. Observation uses the exact same resolved target id as focus.
     this.observations.update(focusState.targetId, deltaMs, this.observationRule);
 
     // 3. Reproject target-bound regions from the current pose/camera.
