@@ -1,3 +1,6 @@
+import { MmdSceneLoader } from './PmxPmdLoaderContract';
+import { MmdLoadResult } from './MmdLoaderAdapter';
+
 export interface SelectedMmdFile {
   file: File;
   url: string;
@@ -24,5 +27,15 @@ export class MmdFilePicker {
       }, { once: true });
       input.click();
     });
+  }
+
+  async pickAndLoad(loader: MmdSceneLoader): Promise<MmdLoadResult | null> {
+    const selected = await this.pick();
+    if (!selected) return null;
+    try {
+      return await loader.load(selected.url);
+    } finally {
+      URL.revokeObjectURL(selected.url);
+    }
   }
 }
