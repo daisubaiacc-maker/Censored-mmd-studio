@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import './styles.css';
+import { CensorshipSystem } from './censorship/CensorshipSystem';
 
 const app = document.querySelector<HTMLDivElement>('#app');
-
-if (!app) {
-  throw new Error('Application root element was not found.');
-}
+if (!app) throw new Error('Application root element was not found.');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x181818);
@@ -24,19 +22,23 @@ scene.add(light);
 const grid = new THREE.GridHelper(10, 20, 0x555555, 0x333333);
 scene.add(grid);
 
+// Censorship is deliberately part of the render pipeline from the beginning.
+const censorship = new CensorshipSystem(renderer, scene, camera);
+
 function resize(): void {
   const width = window.innerWidth;
   const height = window.innerHeight;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
+  censorship.resize(width, height);
 }
 
 window.addEventListener('resize', resize);
 
 function animate(): void {
   requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+  censorship.render();
 }
 
 animate();
