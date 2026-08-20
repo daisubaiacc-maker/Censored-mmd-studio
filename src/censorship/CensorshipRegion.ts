@@ -9,8 +9,14 @@ export interface CensorshipBinding {
 }
 
 export interface CensorshipObservationRule {
+  /** Focus target that must be intentionally observed. */
+  targetId: string;
+  /** Whether observation can activate this region. */
   activateOnFocus: boolean;
+  /** Continuous focus time required before activation. */
   activationGraceMs: number;
+  /** Keep the region active after activation until reset. */
+  latch: boolean;
 }
 
 /** Persistent censorship scene data. Optical focus and censorship stay separate. */
