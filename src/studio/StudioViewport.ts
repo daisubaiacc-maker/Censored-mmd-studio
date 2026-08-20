@@ -4,7 +4,7 @@ export interface StudioViewportOptions {
   container: HTMLElement;
 }
 
-/** Minimal Studio viewport: one persistent Three.js scene/camera/renderer boundary. */
+/** Persistent render surface shared by future Studio and first-person modes. */
 export class StudioViewport {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
@@ -26,7 +26,9 @@ export class StudioViewport {
     this.resize(options.container);
   }
 
-  addPreviewObject(object: THREE.Object3D): void { this.scene.add(object); }
+  addPreviewObject(object: THREE.Object3D): void {
+    this.scene.add(object);
+  }
 
   resize(container: HTMLElement): void {
     const width = Math.max(1, container.clientWidth);
