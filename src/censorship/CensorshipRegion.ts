@@ -1,14 +1,24 @@
 export type CensorshipEffect = 'mosaic' | 'solid' | 'blur';
 
+export type CensorshipRegionSpace = 'screen' | 'model';
+
+export interface CensorshipBinding {
+  modelId: string;
+  boneName?: string;
+  objectName?: string;
+  offset?: [number, number, number];
+}
+
 /**
- * Screen-space censorship region.
+ * Persistent censorship scene data.
  *
- * Keeping this as scene data (rather than DOM state) lets future versions
- * attach a region to a model, bone, or arbitrary 3D anchor and project it
- * into screen space every frame.
+ * Screen-space regions are useful for manual framing. Model-space bindings
+ * are the long-term path for regions that follow bones/objects as the camera
+ * and pose change.
  */
 export interface CensorshipRegion {
   id: string;
+  space: CensorshipRegionSpace;
   x: number;
   y: number;
   width: number;
@@ -17,7 +27,5 @@ export interface CensorshipRegion {
   enabled: boolean;
   pixelSize?: number;
   color?: number;
-  /** Optional future binding to a scene object or MMD bone. */
-  targetObjectId?: string;
-  targetBoneName?: string;
+  binding?: CensorshipBinding;
 }
