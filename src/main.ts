@@ -4,6 +4,7 @@ import { CensorshipSystem } from './censorship/CensorshipSystem';
 import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
 import { MmdModelLoader } from './mmd/MmdModelLoader';
+import { MmdPackageLoader } from './mmd/MmdPackageLoader';
 import { ModelRegistry } from './mmd/ModelRegistry';
 import { StudioModelSession } from './studio/StudioModelSession';
 import { StudioViewport } from './studio/StudioViewport';
@@ -19,23 +20,16 @@ app.innerHTML = `
     <header class="studio-toolbar">
       <strong id="studio-title"></strong>
       <span id="studio-mode">Studio</span>
-      <label>
-        <span id="language-label" class="sr-only"></span>
-        <select id="locale-select"><option value="ja"></option><option value="en"></option></select>
-      </label>
+      <label><span id="language-label" class="sr-only"></span><select id="locale-select"><option value="ja"></option><option value="en"></option></select></label>
       <form id="model-form" class="model-loader-form">
-        <input id="model-url" type="url" />
+        <input id="model-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
         <button id="load-model-button" type="submit"></button>
         <span id="model-status" role="status" aria-live="polite"></span>
       </form>
     </header>
     <aside class="studio-panel" aria-label="Studio controls">
       <select id="model-select" aria-label="Model selection"><option value=""></option></select>
-      <select id="transform-mode" aria-label="Transform mode">
-        <option value="translate">Move</option>
-        <option value="rotate">Rotate</option>
-        <option value="scale">Scale</option>
-      </select>
+      <select id="transform-mode" aria-label="Transform mode"><option value="translate">Move</option><option value="rotate">Rotate</option><option value="scale">Scale</option></select>
       <div class="transform-buttons">
         <button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button>
         <button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button>
@@ -43,12 +37,11 @@ app.innerHTML = `
       </div>
     </aside>
     <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
-  </main>
-`;
+  </main>`;
 
 const viewportElement = document.querySelector<HTMLElement>('#viewport')!;
 const form = document.querySelector<HTMLFormElement>('#model-form')!;
-const urlInput = document.querySelector<HTMLInputElement>('#model-url')!;
+const modelFile = document.querySelector<HTMLInputElement>('#model-file')!;
 const status = document.querySelector<HTMLSpanElement>('#model-status')!;
 const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select')!;
 const title = document.querySelector<HTMLElement>('#studio-title')!;
@@ -66,8 +59,7 @@ function updateUiLanguage(): void {
   localeSelect.options[0].textContent = labels.settings.japanese;
   localeSelect.options[1].textContent = labels.settings.english;
   localeSelect.value = getLocale();
-  urlInput.placeholder = labels.studio.modelUrl;
-  urlInput.setAttribute('aria-label', labels.studio.modelUrl);
+  modelFile.setAttribute('aria-label', labels.studio.modelUrl);
   loadModelButton.textContent = labels.studio.loadModel;
 }
 updateUiLanguage();
@@ -77,9 +69,9 @@ const { scene, camera, renderer } = viewport;
 scene.background = new THREE.Color(0x181818);
 scene.add(new THREE.GridHelper(10, 20, 0x555555, 0x333333));
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
-
 const censorship = new CensorshipSystem(renderer, scene, camera);
 const modelLoader = new MmdModelLoader();
+const packageLoader = new MmdPackageLoader();
 const modelRegistry = new ModelRegistry();
 const modelSession = new StudioModelSession(viewport, modelLoader);
 const projectStore = new ProjectStore();
@@ -90,12 +82,9 @@ const transform = new TransformController();
 function refreshModelSelect(): void {
   const current = modelSelect.value;
   modelSelect.replaceChildren(new Option(t().studio.modelUrl, ''));
-  for (const model of modelRegistry.values()) {
-    modelSelect.add(new Option(model.id, model.id));
-  }
+  for (const model of modelRegistry.values()) modelSelect.add(new Option(model.id, model.id));
   modelSelect.value = current;
 }
-
 function frameModel(model: THREE.Object3D): void {
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
@@ -105,12 +94,12 @@ function frameModel(model: THREE.Object3D): void {
   camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15);
   camera.lookAt(center);
 }
-
-export async function loadMmdModel(url: string, modelId = `model-${crypto.randomUUID()}`): Promise<void> {
-  const model = await modelSession.load({ modelUrl: url });
+async function registerLoadedModel(model: THREE.Object3D, source: string): Promise<void> {
+  const modelId = `model-${crypto.randomUUID()}`;
   model.name = modelId;
+  scene.add(model);
   modelRegistry.register(modelId, model);
-  projectScene.registerModel(modelId, url, model.name);
+  projectScene.registerModel(modelId, source, model.name);
   projectScene.captureModel(modelId);
   selection.select(model);
   transform.select(model);
@@ -122,11 +111,17 @@ export async function loadMmdModel(url: string, modelId = `model-${crypto.random
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const url = urlInput.value.trim();
-  if (!url) return;
+  const file = modelFile.files?.[0];
+  if (!file) return;
   status.textContent = t().studio.loading;
-  try { await loadMmdModel(url); status.textContent = t().studio.loaded; }
-  catch (error) { console.error(error); status.textContent = t().studio.failed; }
+  try {
+    const model = await packageLoader.loadZip(file);
+    await registerLoadedModel(model, `local:${file.name}`);
+    status.textContent = t().studio.loaded;
+  } catch (error) {
+    console.error(error);
+    status.textContent = t().studio.failed;
+  }
 });
 
 modelSelect.addEventListener('change', () => {
@@ -134,25 +129,19 @@ modelSelect.addEventListener('change', () => {
   selection.select(model ?? null);
   transform.select(model ?? null);
 });
-
 transformMode.addEventListener('change', () => transform.setMode(transformMode.value as 'translate' | 'rotate' | 'scale'));
-
-document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => {
-  button.addEventListener('click', () => {
-    const axis = button.dataset.axis as 'x' | 'y' | 'z';
-    const sign = Number(button.dataset.sign);
-    if (!selection.selectedObject) return;
-    const step = 0.1 * sign;
-    if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
-    else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
-    else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1));
-    if (modelSelect.value) projectScene.captureModel(modelSelect.value);
-  });
-});
-
+document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => button.addEventListener('click', () => {
+  const axis = button.dataset.axis as 'x' | 'y' | 'z';
+  const sign = Number(button.dataset.sign);
+  if (!selection.selectedObject) return;
+  const step = 0.1 * sign;
+  if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
+  else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
+  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1));
+  if (modelSelect.value) projectScene.captureModel(modelSelect.value);
+}));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
 window.addEventListener('resize', () => { viewport.resize(viewportElement); const rect = viewportElement.getBoundingClientRect(); censorship.resize(Math.max(1, rect.width), Math.max(1, rect.height)); });
-
 function animate(): void { requestAnimationFrame(animate); viewport.render(); censorship.render(); }
 viewport.resize(viewportElement);
 animate();
