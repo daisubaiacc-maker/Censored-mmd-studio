@@ -14,4 +14,8 @@ export class ProjectStore {
   update(mutator: (project: ProjectData) => void): void {
     mutator(this.project);
   }
+
+  snapshot(): ProjectData {
+    return structuredClone(this.project);
+  }
 }
