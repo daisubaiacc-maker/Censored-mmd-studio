@@ -37,8 +37,12 @@ export const MosaicShader = {
                       vUv.y >= r.y && vUv.y <= r.y + r.w;
         if (inside) {
           float block = max(uRegionPixelSizes[i], 1.0);
-          vec2 pixelUv = floor(vUv * uResolution / block) * block / uResolution;
-          source = texture2D(tDiffuse, pixelUv);
+          // Sample the center of a pixel block and clamp the coordinate so
+          // the post-processing pass never samples outside the source image.
+          vec2 blockCount = max(floor(uResolution / block), vec2(1.0));
+          vec2 blockUv = (floor(vUv * blockCount) + 0.5) / blockCount;
+          blockUv = clamp(blockUv, vec2(0.0), vec2(1.0));
+          source = texture2D(tDiffuse, blockUv);
         }
       }
 
