@@ -15,7 +15,8 @@ export class CensorshipBindingController {
   private readonly bindings: BoundRegion[] = [];
   private readonly screenRegions: CensorshipRegion[] = [];
 
-  constructor(private readonly censorship: CensorshipSystem) {}
+  // The optional second argument preserves the current main.ts construction API.
+  constructor(private readonly censorship: CensorshipSystem, _scene?: THREE.Scene) {}
 
   bind(region: CensorshipRegion, target: THREE.Object3D, worldPoint?: THREE.Vector3): void {
     const localPoint = worldPoint ? target.worldToLocal(worldPoint.clone()) : new THREE.Vector3();
