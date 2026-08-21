@@ -1,5 +1,7 @@
 export type CensorshipEffect = 'mosaic' | 'solid' | 'blur';
 export type CensorshipRegionSpace = 'screen' | 'model';
+export type CensorshipShape = 'rectangle' | 'ellipse' | 'circle' | 'custom';
+export type CensorshipOrientation = 'world' | 'billboard' | 'screen';
 
 export interface CensorshipBinding {
   modelId: string;
@@ -23,10 +25,13 @@ export interface CensorshipObservationRule {
 export interface CensorshipRegion {
   id: string;
   space: CensorshipRegionSpace;
+  shape: CensorshipShape;
+  orientation: CensorshipOrientation;
   x: number;
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   effect: CensorshipEffect;
   enabled: boolean;
   pixelSize?: number;
