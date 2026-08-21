@@ -44,7 +44,7 @@ export class CensorshipSystem {
 
   resize(width: number, height: number): void {
     this.composer.setSize(width, height);
-    this.mosaicPass.uniforms.uResolution.value = [width, height];
+    (this.mosaicPass.uniforms.uResolution.value as THREE.Vector2).set(width, height);
   }
 
   render(): void {
