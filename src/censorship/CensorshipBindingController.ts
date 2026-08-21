@@ -8,7 +8,7 @@ interface BoundObject {
   localPoint: THREE.Vector3;
 }
 
-/** Bridges exact target points to camera-facing censorship shapes in screen space. */
+/** Bridges exact target points to censorship shapes. Model space follows 3D projection; screen space is viewport-fixed. */
 export class CensorshipBindingController {
   private readonly bindings: BoundObject[] = [];
 
@@ -40,18 +40,17 @@ export class CensorshipBindingController {
 
       const centerX = THREE.MathUtils.clamp(projected.x * 0.5 + 0.5, 0, 1);
       const centerY = THREE.MathUtils.clamp(projected.y * 0.5 + 0.5, 0, 1);
-      const sizeMode = binding.region.sizeMode ?? 'screen';
 
-      if (sizeMode === 'screen') {
-        // Screen mode is explicitly pixel-sized. Recompute normalized dimensions every
-        // frame so switching from world mode can never leave a world-projected size behind.
+      if (binding.region.space === 'screen') {
+        // A screen-space effect has no 3D size. Camera dolly/zoom can only move the
+        // model-relative anchor point; the effect's viewport size stays in CSS pixels.
         const screenWidth = binding.region.screenWidth ?? 180;
         const screenHeight = binding.region.screenHeight ?? 140;
         binding.region.width = screenWidth / Math.max(width, 1);
         binding.region.height = screenHeight / Math.max(height, 1);
       } else {
-        // World mode deliberately projects a real 3D size, so perspective changes its
-        // apparent size as the camera moves closer/farther away.
+        // A model-space effect has a real 3D size. Projecting its corners through the
+        // same perspective camera as the model makes it scale by exactly the same ratio.
         const worldWidth = binding.region.worldWidth ?? 0.5;
         const worldHeight = binding.region.worldHeight ?? 0.4;
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
