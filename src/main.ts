@@ -3,6 +3,7 @@ import './styles.css';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
 import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
+import { saveCurrentProject, loadProjectFromFile } from './core/ProjectFileActions';
 import { MmdPackageLoader } from './mmd/MmdPackageLoader';
 import { ModelRegistry } from './mmd/ModelRegistry';
 import { StudioViewport } from './studio/StudioViewport';
@@ -19,6 +20,9 @@ app.innerHTML = `
       <strong id="studio-title"></strong>
       <span id="studio-mode">Studio</span>
       <label><span id="language-label" class="sr-only"></span><select id="locale-select"><option value="ja"></option><option value="en"></option></select></label>
+      <button id="save-project-button" type="button">保存</button>
+      <button id="load-project-button" type="button">読み込み</button>
+      <input id="project-file-input" type="file" accept="application/json,.json" hidden />
       <form id="model-form" class="model-loader-form">
         <input id="model-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
         <button id="load-model-button" type="submit"></button>
@@ -45,6 +49,9 @@ const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select')
 const title = document.querySelector<HTMLElement>('#studio-title')!;
 const languageLabel = document.querySelector<HTMLElement>('#language-label')!;
 const loadModelButton = document.querySelector<HTMLButtonElement>('#load-model-button')!;
+const saveProjectButton = document.querySelector<HTMLButtonElement>('#save-project-button')!;
+const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-project-button')!;
+const projectFileInput = document.querySelector<HTMLInputElement>('#project-file-input')!;
 const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
 const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode')!;
 
@@ -90,8 +97,7 @@ function frameModel(model: THREE.Object3D): void {
   camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15);
   camera.lookAt(center);
 }
-function registerLoadedModel(model: THREE.Object3D, source: string): void {
-  const modelId = `model-${crypto.randomUUID()}`;
+function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `model-${crypto.randomUUID()}`): void {
   model.name = modelId;
   scene.add(model);
   modelRegistry.register(modelId, model);
@@ -117,6 +123,27 @@ form.addEventListener('submit', async (event) => {
   } catch (error) {
     console.error(error);
     status.textContent = t().studio.failed;
+  }
+});
+
+saveProjectButton.addEventListener('click', () => {
+  projectScene.captureAll();
+  saveCurrentProject(projectStore, `${projectStore.get().name || 'censored-mmd-project'}.json`);
+});
+loadProjectButton.addEventListener('click', () => projectFileInput.click());
+projectFileInput.addEventListener('change', async () => {
+  const file = projectFileInput.files?.[0];
+  projectFileInput.value = '';
+  if (!file) return;
+  status.textContent = 'プロジェクト読み込み中…';
+  try {
+    await loadProjectFromFile(projectStore, file);
+    const modelRef = projectStore.get().models[0];
+    if (!modelRef) throw new Error('Project contains no model.');
+    status.textContent = 'プロジェクトを読み込みました。モデルZIPを再選択してください。';
+  } catch (error) {
+    console.error(error);
+    status.textContent = 'プロジェクトの読み込みに失敗しました';
   }
 });
 
