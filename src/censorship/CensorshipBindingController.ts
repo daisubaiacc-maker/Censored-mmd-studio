@@ -93,13 +93,14 @@ export class CensorshipBindingController {
 
     for (const region of this.screenRegions) {
       if (!region.enabled || !region.screen) continue;
+      const screen = region.screen;
       renderRegions.push({
         region,
         rect: new THREE.Vector4(
-          region.screen.x / Math.max(width, 1),
-          region.screen.y / Math.max(height, 1),
-          region.screen.width / Math.max(width, 1),
-          region.screen.height / Math.max(height, 1),
+          screen.x / Math.max(width, 1),
+          1 - (screen.y + screen.height) / Math.max(height, 1),
+          screen.width / Math.max(width, 1),
+          screen.height / Math.max(height, 1),
         ),
       });
     }
