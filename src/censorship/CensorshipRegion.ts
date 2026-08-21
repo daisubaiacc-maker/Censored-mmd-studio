@@ -1,13 +1,13 @@
 export type CensorshipEffect = 'mosaic' | 'solid' | 'blur';
 export type CensorshipRegionSpace = 'screen' | 'model';
 export type CensorshipShape = 'rectangle' | 'ellipse' | 'circle' | 'custom';
-export type CensorshipOrientation = 'world' | 'billboard' | 'screen';
 
 export interface CensorshipBinding {
   modelId: string;
   boneName?: string;
   objectName?: string;
-  offset?: [number, number, number];
+  /** Position relative to the bound object/bone. */
+  localOffset?: [number, number, number];
 }
 
 export interface CensorshipObservationRule {
@@ -17,28 +17,37 @@ export interface CensorshipObservationRule {
   latch: boolean;
 }
 
-/** Persistent censorship scene data. Optical focus and censorship stay separate. */
-export interface CensorshipRegion {
-  id: string;
-  /** screen = fixed viewport effect; model = anchored to a 3D model point. */
-  space: CensorshipRegionSpace;
-  shape: CensorshipShape;
-  orientation: CensorshipOrientation;
+export interface CensorshipModelTransform {
+  /** Local position relative to the binding target. */
+  position: [number, number, number];
+  /** Local Euler rotation in radians. */
+  rotation: [number, number, number];
+  /** Physical 3D size. Never screen pixels. */
+  width: number;
+  height: number;
+  /** Face the active camera while retaining the 3D anchor and size. */
+  billboard: boolean;
+}
+
+export interface CensorshipScreenRect {
+  /** CSS-pixel coordinates in the viewport. */
   x: number;
   y: number;
   width: number;
   height: number;
-  /** Screen-space dimensions in CSS pixels. Used only when space is screen. */
-  screenWidth?: number;
-  screenHeight?: number;
-  /** Real 3D dimensions. Used only when space is model. */
-  worldWidth?: number;
-  worldHeight?: number;
-  rotation?: number;
+}
+
+/** Persistent censorship scene data. Model and screen regions use separate coordinate systems. */
+export interface CensorshipRegion {
+  id: string;
+  space: CensorshipRegionSpace;
+  shape: CensorshipShape;
   effect: CensorshipEffect;
   enabled: boolean;
   pixelSize?: number;
   color?: number;
   binding?: CensorshipBinding;
+  model?: CensorshipModelTransform;
+  screen?: CensorshipScreenRect;
   observation?: CensorshipObservationRule;
 }
