@@ -87,6 +87,7 @@ function refreshModelSelect(): void {
   modelSelect.replaceChildren(new Option(t().studio.modelUrl, ''));
   for (const model of modelRegistry.values()) modelSelect.add(new Option(model.id, model.id));
   modelSelect.value = current;
+  viewport.setSelectableRoots([...modelRegistry.values()].map((model) => model.root));
 }
 function frameModel(model: THREE.Object3D): void {
   const box = new THREE.Box3().setFromObject(model);
@@ -102,20 +103,32 @@ function syncTransformGizmo(): void {
   viewport.setTransformMode(transform.getMode());
   viewport.attachTransform(selection.selectedObject);
 }
+function selectModel(model: THREE.Object3D | null): void {
+  selection.select(model);
+  transform.select(model);
+  if (model) {
+    const registered = [...modelRegistry.values()].find((entry) => entry.root === model);
+    if (registered) modelSelect.value = registered.id;
+  } else {
+    modelSelect.value = '';
+  }
+  syncTransformGizmo();
+}
 function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `model-${crypto.randomUUID()}`): void {
   model.name = modelId;
   scene.add(model);
   modelRegistry.register(modelId, model);
   projectScene.registerModel(modelId, source, model.name);
   projectScene.captureModel(modelId);
-  selection.select(model);
-  transform.select(model);
+  selectModel(model);
   refreshModelSelect();
   modelSelect.value = modelId;
   syncTransformGizmo();
   scene.updateMatrixWorld(true);
   frameModel(model);
 }
+
+viewport.onObjectSelected = selectModel;
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -155,9 +168,7 @@ projectFileInput.addEventListener('change', async () => {
 
 modelSelect.addEventListener('change', () => {
   const model = modelSelect.value ? modelRegistry.get(modelSelect.value)?.root : null;
-  selection.select(model ?? null);
-  transform.select(model ?? null);
-  syncTransformGizmo();
+  selectModel(model ?? null);
 });
 transformMode.addEventListener('change', () => {
   transform.setMode(transformMode.value as 'translate' | 'rotate' | 'scale');
