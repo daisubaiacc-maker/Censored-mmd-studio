@@ -96,7 +96,6 @@ function frameModel(model: THREE.Object3D): void {
   const distance = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
   camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15);
   camera.lookAt(center);
-  // frameModel changes the camera outside StudioCameraController, so synchronize its orbit state.
   viewport.cameraController.syncFromCamera(center);
 }
 function syncTransformGizmo(): void {
@@ -174,7 +173,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => 
   const step = 0.1 * sign;
   if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
   else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
-  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' === 'z' ? 1 + step : 1));
+  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1));
   if (modelSelect.value) projectScene.captureModel(modelSelect.value);
 }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
