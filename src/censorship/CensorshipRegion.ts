@@ -29,6 +29,8 @@ export interface CensorshipRegion {
   y: number;
   width: number;
   height: number;
+  worldWidth?: number;
+  worldHeight?: number;
   rotation?: number;
   effect: CensorshipEffect;
   enabled: boolean;
