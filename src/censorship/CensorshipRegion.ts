@@ -29,6 +29,9 @@ export interface CensorshipRegion {
   y: number;
   width: number;
   height: number;
+  /** Screen-space dimensions in CSS pixels. Used only when sizeMode is screen. */
+  screenWidth?: number;
+  screenHeight?: number;
   worldWidth?: number;
   worldHeight?: number;
   rotation?: number;
