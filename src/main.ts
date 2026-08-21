@@ -1,36 +1,62 @@
 import * as THREE from 'three';
-import { StudioViewport } from './studio/StudioViewport';
-import { CensorshipSystem } from './censorship/CensorshipSystem';
+import './styles.css';
 import { CensorshipBindingController } from './censorship/CensorshipBindingController';
+import { CensorshipSystem } from './censorship/CensorshipSystem';
 import type { CensorshipRegion } from './censorship/CensorshipRegion';
+import { ProjectSceneController } from './core/ProjectSceneController';
+import { ProjectStore } from './core/ProjectStore';
+import { saveCurrentProject, loadProjectFromFile } from './core/ProjectFileActions';
 import { MmdPackageLoader } from './mmd/MmdPackageLoader';
-import { ModelRegistry } from './studio/ModelRegistry';
-import { ProjectStore } from './project/ProjectStore';
-import { ProjectSceneController } from './project/ProjectSceneController';
+import { ModelRegistry } from './mmd/ModelRegistry';
+import { StudioViewport } from './studio/StudioViewport';
 import { SelectionController } from './studio/SelectionController';
 import { TransformController } from './studio/TransformController';
-import { saveCurrentProject, loadProjectFromFile } from './project/projectFile';
-import { setLocale, t, type Locale } from './i18n';
+import { getLocale, setLocale, t, type Locale } from './i18n';
+
+const app = document.querySelector<HTMLDivElement>('#app');
+if (!app) throw new Error('Application root element was not found.');
+
+app.innerHTML = `
+  <main class="studio-shell">
+    <header class="studio-toolbar">
+      <strong id="studio-title"></strong><span id="studio-mode">Studio</span>
+      <label><span id="language-label" class="sr-only"></span><select id="locale-select"><option value="ja"></option><option value="en"></option></select></label>
+      <button id="save-project-button" type="button">保存</button><button id="load-project-button" type="button">読み込み</button>
+      <input id="project-file-input" type="file" accept="application/json,.json" hidden />
+      <form id="model-form" class="model-loader-form"><input id="model-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" /><button id="load-model-button" type="submit"></button><span id="model-status" role="status" aria-live="polite"></span></form>
+    </header>
+    <aside class="studio-panel" aria-label="Studio controls">
+      <select id="model-select" aria-label="Model selection"><option value=""></option></select>
+      <select id="transform-mode" aria-label="Transform mode"><option value="translate">Move</option><option value="rotate">Rotate</option><option value="scale">Scale</option></select>
+      <div class="transform-buttons"><button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button><button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button><button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button></div>
+      <hr />
+      <button id="censorship-edit-button" type="button">検閲対象を選択</button>
+      <label>サイズ基準 <select id="censorship-size-mode"><option value="screen">画面固定</option><option value="world">3D空間</option></select></label>
+      <label>モザイク粒度 <input id="censorship-pixel-size" type="range" min="2" max="64" step="1" value="18" /></label>
+      <span id="censorship-status" role="status" aria-live="polite"></span>
+    </aside>
+    <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
+  </main>`;
 
 const viewportElement = document.querySelector<HTMLElement>('#viewport')!;
 const form = document.querySelector<HTMLFormElement>('#model-form')!;
 const modelFile = document.querySelector<HTMLInputElement>('#model-file')!;
-const status = document.querySelector<HTMLElement>('#status')!;
+const status = document.querySelector<HTMLSpanElement>('#model-status')!;
+const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select')!;
+const title = document.querySelector<HTMLElement>('#studio-title')!;
+const languageLabel = document.querySelector<HTMLElement>('#language-label')!;
+const loadModelButton = document.querySelector<HTMLButtonElement>('#load-model-button')!;
+const saveProjectButton = document.querySelector<HTMLButtonElement>('#save-project-button')!;
+const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-project-button')!;
+const projectFileInput = document.querySelector<HTMLInputElement>('#project-file-input')!;
 const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
 const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode')!;
-const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit')!;
-const censorshipStatus = document.querySelector<HTMLElement>('#censorship-status')!;
+const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit-button')!;
+const censorshipStatus = document.querySelector<HTMLSpanElement>('#censorship-status')!;
 const censorshipSizeMode = document.querySelector<HTMLSelectElement>('#censorship-size-mode')!;
 const censorshipPixelSize = document.querySelector<HTMLInputElement>('#censorship-pixel-size')!;
-const saveProjectButton = document.querySelector<HTMLButtonElement>('#save-project')!;
-const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-project')!;
-const projectFileInput = document.querySelector<HTMLInputElement>('#project-file')!;
-const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select')!;
 
-function updateUiLanguage(): void {
-  document.title = t().app.title;
-  const title = document.querySelector<HTMLElement>('#app-title'); if (title) title.textContent = t().app.title;
-}
+function updateUiLanguage(): void { const labels = t(); document.documentElement.lang = getLocale(); title.textContent = labels.studio.title; languageLabel.textContent = labels.settings.language; localeSelect.setAttribute('aria-label', labels.settings.language); localeSelect.options[0].textContent = labels.settings.japanese; localeSelect.options[1].textContent = labels.settings.english; localeSelect.value = getLocale(); modelFile.setAttribute('aria-label', labels.studio.modelUrl); loadModelButton.textContent = labels.studio.loadModel; }
 updateUiLanguage();
 
 const viewport = new StudioViewport({ container: viewportElement });
