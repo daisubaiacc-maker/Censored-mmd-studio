@@ -17,6 +17,9 @@ export class StudioViewport {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     options.container.appendChild(this.renderer.domElement);
+    this.renderer.domElement.addEventListener('contextmenu', this.handleContextMenu);
+    this.renderer.domElement.addEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.addEventListener('pointerup', this.handlePointerUp);
     this.camera.position.set(0, 1.4, 4);
     this.camera.lookAt(0, 1, 0);
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x222222, 2));
@@ -62,7 +65,22 @@ export class StudioViewport {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.transformControls.dispose();
+    this.renderer.domElement.removeEventListener('contextmenu', this.handleContextMenu);
+    this.renderer.domElement.removeEventListener('pointerdown', this.handlePointerDown);
+    this.renderer.domElement.removeEventListener('pointerup', this.handlePointerUp);
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
+
+  private readonly handleContextMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+  };
+
+  private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (event.button === 2) event.preventDefault();
+  };
+
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (event.button === 2) event.preventDefault();
+  };
 }
