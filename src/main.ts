@@ -150,7 +150,9 @@ viewport.onMeshSelected = (mesh) => {
   if (!root) return;
   const region: CensorshipRegion = {
     id: `censor-${crypto.randomUUID()}`,
-    space: 'model',
+    space: 'screen',
+    shape: 'rectangle',
+    orientation: 'billboard',
     x: 0,
     y: 0,
     width: 0,
@@ -164,7 +166,7 @@ viewport.onMeshSelected = (mesh) => {
   censorshipSelectionMode = false;
   viewport.setCensorshipSelectionMode(false);
   censorshipEditButton.textContent = '検閲対象を選択';
-  censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'}`;
+  censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle Billboard`;
 };
 
 form.addEventListener('submit', async (event) => {
@@ -228,7 +230,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => 
   const step = 0.1 * sign;
   if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
   else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
-  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1));
+  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' === axis === 'z' ? 1 + step : 1));
   if (modelSelect.value) projectScene.captureModel(modelSelect.value);
 }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
