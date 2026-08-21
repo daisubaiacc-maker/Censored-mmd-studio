@@ -20,8 +20,6 @@ export class MmdPackageLoader {
     const pmxDirectory = pmxPath.includes('/') ? pmxPath.slice(0, pmxPath.lastIndexOf('/')) : '';
 
     try {
-      // Create browser-local URLs for every file in the package so MMDLoader can
-      // resolve textures and other resources through its normal URL loading path.
       for (const entry of entries) {
         const data = await entry.async('arraybuffer');
         const blobUrl = URL.createObjectURL(
@@ -41,7 +39,12 @@ export class MmdPackageLoader {
 
       const manager = new LoadingManager();
       manager.setURLModifier((requestedUrl) => {
-        const normalizedUrl = this.normalizeResourcePath(requestedUrl, pmxDirectory);
+        // MMDLoader resolves relative texture names against the PMX blob URL
+        // before invoking the URL modifier. For example:
+        // blob:https://host/Textures\\face.png
+        // Strip that generated blob base before matching the ZIP entry.
+        const resourcePath = this.extractPackagePath(requestedUrl);
+        const normalizedUrl = this.normalizeResourcePath(resourcePath, pmxDirectory);
         return (
           resourceUrls.get(normalizedUrl) ??
           resourceUrls.get(normalizedUrl.toLowerCase()) ??
@@ -65,22 +68,37 @@ export class MmdPackageLoader {
     return path.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\//, '');
   }
 
-  private normalizeResourcePath(requestedUrl: string, pmxDirectory: string): string {
-    let decodedUrl = requestedUrl;
+  private extractPackagePath(requestedUrl: string): string {
+    let path = requestedUrl;
+
+    // URLModifier can receive a blob URL produced by resolving a relative
+    // resource against the PMX blob URL. Remove the blob scheme and origin,
+    // leaving the package-relative resource path.
+    if (path.startsWith('blob:')) {
+      path = path.slice(5);
+      try {
+        const parsed = new URL(path);
+        path = parsed.pathname;
+      } catch {
+        const originPrefix = `${window.location.origin}/`;
+        if (path.startsWith(originPrefix)) path = path.slice(originPrefix.length);
+      }
+    }
+
     try {
-      decodedUrl = decodeURI(requestedUrl);
+      path = decodeURI(path);
     } catch {
-      // Keep the original URL when decoding fails.
+      // Keep the original path when decoding fails.
     }
 
-    const withoutQuery = decodedUrl.split(/[?#]/, 1)[0];
-    const normalizedRequest = this.normalizePath(withoutQuery);
+    return path.replace(/^\//, '');
+  }
 
-    if (/^[a-z]+:/i.test(normalizedRequest) || normalizedRequest.startsWith('blob:')) {
-      return normalizedRequest;
-    }
-
-    const base = pmxDirectory ? `${pmxDirectory}/` : '';
+  private normalizeResourcePath(requestedUrl: string, pmxDirectory: string): string {
+    const normalizedRequest = this.normalizePath(requestedUrl.split(/[?#]/, 1)[0]);
+    const base = pmxDirectory && !normalizedRequest.startsWith(`${pmxDirectory}/`)
+      ? `${pmxDirectory}/`
+      : '';
     const parts = `${base}${normalizedRequest}`.split('/');
     const normalized: string[] = [];
 
