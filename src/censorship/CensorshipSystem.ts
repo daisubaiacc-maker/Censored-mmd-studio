@@ -53,18 +53,18 @@ export class CensorshipSystem {
   }
 
   private syncUniforms(): void {
-    const rects = this.mosaicPass.uniforms.uRegionRects.value as number[][];
+    const rects = this.mosaicPass.uniforms.uRegionRects.value as THREE.Vector4[];
     const pixelSizes = this.mosaicPass.uniforms.uRegionPixelSizes.value as number[];
 
     for (let i = 0; i < MAX_REGIONS; i += 1) {
       const region = this.regions[i];
       if (!region) {
-        rects[i] = [0, 0, 0, 0];
+        rects[i].set(0, 0, 0, 0);
         pixelSizes[i] = 12;
         continue;
       }
 
-      rects[i] = [region.x, region.y, region.width, region.height];
+      rects[i].set(region.x, region.y, region.width, region.height);
       pixelSizes[i] = region.pixelSize ?? 12;
     }
 
