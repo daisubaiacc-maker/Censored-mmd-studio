@@ -43,23 +43,20 @@ export class CensorshipBindingController {
       const sizeMode = binding.region.sizeMode ?? 'screen';
 
       if (sizeMode === 'screen') {
-        // Screen-space dimensions are pixels converted to UV units. They do not
-        // change when the camera zooms or orbits.
-        const pixelWidth = binding.region.width > 0 ? binding.region.width * width : 180;
-        const pixelHeight = binding.region.height > 0 ? binding.region.height * height : 140;
-        binding.region.width = pixelWidth / Math.max(width, 1);
-        binding.region.height = pixelHeight / Math.max(height, 1);
+        // width/height are normalized screen dimensions. The initial size is 180x140 CSS pixels.
+        if (binding.region.width <= 0) binding.region.width = 180 / Math.max(width, 1);
+        if (binding.region.height <= 0) binding.region.height = 140 / Math.max(height, 1);
       } else {
-        // World-space dimensions are projected every frame, so camera zoom changes
-        // their apparent size as expected.
-        const worldSize = Math.max(binding.region.width, binding.region.height, 0.01);
+        const worldWidth = binding.region.worldWidth ?? 0.5;
+        const worldHeight = binding.region.worldHeight ?? 0.4;
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
         const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
-        const half = worldSize * 0.5;
-        const projectedRight = worldPosition.clone().addScaledVector(right, half).project(camera);
-        const projectedUp = worldPosition.clone().addScaledVector(up, half).project(camera);
-        binding.region.width = Math.abs(projectedRight.x - projected.x);
-        binding.region.height = Math.abs(projectedUp.y - projected.y);
+        const projectedRight = worldPosition.clone().addScaledVector(right, worldWidth * 0.5).project(camera);
+        const projectedLeft = worldPosition.clone().addScaledVector(right, -worldWidth * 0.5).project(camera);
+        const projectedUp = worldPosition.clone().addScaledVector(up, worldHeight * 0.5).project(camera);
+        const projectedDown = worldPosition.clone().addScaledVector(up, -worldHeight * 0.5).project(camera);
+        binding.region.width = Math.abs(projectedRight.x - projectedLeft.x);
+        binding.region.height = Math.abs(projectedUp.y - projectedDown.y);
       }
 
       const offset = binding.region.binding?.offset;
