@@ -25,6 +25,10 @@ export class CensorshipBindingController {
     this.censorship.setRegions([]);
   }
 
+  getRegions(): readonly CensorshipRegion[] {
+    return this.bindings.map(({ region }) => region);
+  }
+
   update(camera: THREE.Camera, width: number, height: number): void {
     const minDimension = Math.max(1, Math.min(width, height));
     const defaultWidth = 180 / minDimension;
