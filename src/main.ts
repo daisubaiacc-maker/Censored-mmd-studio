@@ -31,7 +31,7 @@ app.innerHTML = `
       <div class="transform-buttons"><button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button><button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button><button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button></div>
       <hr />
       <button id="censorship-edit-button" type="button">検閲対象を選択</button>
-      <label>サイズ基準 <select id="censorship-size-mode"><option value="screen">画面固定</option><option value="world">3D空間</option></select></label>
+      <label>検閲モード <select id="censorship-size-mode"><option value="model">モデル追従</option><option value="screen">画面固定</option></select></label>
       <label>モザイク粒度 <input id="censorship-pixel-size" type="range" min="2" max="64" step="1" value="18" /></label>
       <span id="censorship-status" role="status" aria-live="polite"></span>
     </aside>
@@ -63,7 +63,7 @@ const viewport = new StudioViewport({ container: viewportElement });
 const { scene, camera, renderer } = viewport;
 scene.background = new THREE.Color(0x181818); scene.add(new THREE.GridHelper(10, 20, 0x555555, 0x333333)); scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
 const censorship = new CensorshipSystem(renderer, scene, camera);
-const censorshipBindings = new CensorshipBindingController(censorship);
+const censorshipBindings = new CensorshipBindingController(censorship, scene);
 const packageLoader = new MmdPackageLoader(); const modelRegistry = new ModelRegistry(); const projectStore = new ProjectStore(); const projectScene = new ProjectSceneController(projectStore.get(), modelRegistry); const selection = new SelectionController(); const transform = new TransformController();
 let censorshipSelectionMode = false;
 
@@ -77,12 +77,51 @@ viewport.onObjectSelected = selectModel;
 viewport.onMeshSelected = (mesh, hitPoint) => {
   const root = [...modelRegistry.values()].find((entry) => { let current: THREE.Object3D | null = mesh; while (current) { if (current === entry.root) return true; current = current.parent; } return false; });
   if (!root) return;
-  const region: CensorshipRegion = { id: `censor-${crypto.randomUUID()}`, space: 'model', shape: 'rectangle', orientation: 'billboard', x: 0, y: 0, width: 0, height: 0, worldWidth: 0.5, worldHeight: 0.4, screenWidth: 180, screenHeight: 140, effect: 'mosaic', enabled: true, pixelSize: Number(censorshipPixelSize.value), binding: { modelId: root.id, objectName: mesh.name } };
-  censorshipBindings.bind(region, mesh, hitPoint); censorshipSelectionMode = false; viewport.setCensorshipSelectionMode(false); censorshipEditButton.textContent = '検閲対象を選択'; censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle Billboard / Model`;
+
+  const mode = censorshipSizeMode.value;
+  if (mode === 'screen') {
+    const region: CensorshipRegion = {
+      id: `censor-${crypto.randomUUID()}`,
+      space: 'screen',
+      shape: 'rectangle',
+      effect: 'mosaic',
+      enabled: true,
+      pixelSize: Number(censorshipPixelSize.value),
+      screen: { x: 0, y: 0, width: 180, height: 140 },
+    };
+    censorshipBindings.addScreenRegion(region);
+    censorshipSelectionMode = false;
+    viewport.setCensorshipSelectionMode(false);
+    censorshipEditButton.textContent = '検閲対象を選択';
+    censorshipStatus.textContent = '登録: 画面固定 Rectangle';
+    return;
+  }
+
+  const region: CensorshipRegion = {
+    id: `censor-${crypto.randomUUID()}`,
+    space: 'model',
+    shape: 'rectangle',
+    effect: 'mosaic',
+    enabled: true,
+    pixelSize: Number(censorshipPixelSize.value),
+    binding: { modelId: root.id, objectName: mesh.name, localOffset: [0, 0, 0] },
+    model: {
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      width: 0.5,
+      height: 0.4,
+      billboard: true,
+    },
+  };
+  censorshipBindings.bind(region, mesh, hitPoint);
+  censorshipSelectionMode = false;
+  viewport.setCensorshipSelectionMode(false);
+  censorshipEditButton.textContent = '検閲対象を選択';
+  censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle / モデル追従 / Billboard ON`;
 };
 
-function updateCensorshipOptions(): void { for (const region of censorshipBindings.getRegions()) { region.space = censorshipSizeMode.value === 'world' ? 'model' : 'screen'; region.pixelSize = Number(censorshipPixelSize.value); } }
-censorshipSizeMode.addEventListener('change', updateCensorshipOptions); censorshipPixelSize.addEventListener('input', updateCensorshipOptions);
+censorshipPixelSize.addEventListener('input', () => { for (const region of censorshipBindings.getRegions()) region.pixelSize = Number(censorshipPixelSize.value); });
+censorshipSizeMode.addEventListener('change', () => { censorshipStatus.textContent = censorshipSizeMode.value === 'model' ? '次のクリックでモデル追従検閲を配置します' : '次のクリックで画面固定検閲を配置します'; });
 
 form.addEventListener('submit', async (event) => { event.preventDefault(); const file = modelFile.files?.[0]; if (!file) return; status.textContent = t().studio.loading; try { const model = await packageLoader.loadZip(file); registerLoadedModel(model, `local:${file.name}`); status.textContent = t().studio.loaded; } catch (error) { console.error(error); status.textContent = t().studio.failed; } });
 censorshipEditButton.addEventListener('click', () => { censorshipSelectionMode = !censorshipSelectionMode; viewport.setCensorshipSelectionMode(censorshipSelectionMode); censorshipEditButton.textContent = censorshipSelectionMode ? '検閲選択を終了' : '検閲対象を選択'; censorshipStatus.textContent = censorshipSelectionMode ? 'Viewport上のメッシュをクリックしてください' : ''; });
