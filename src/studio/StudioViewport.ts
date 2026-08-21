@@ -23,8 +23,8 @@ export class StudioViewport {
 
   /** Called when a selectable model root is clicked in the viewport. */
   onObjectSelected: ((object: THREE.Object3D) => void) | null = null;
-  /** Called when a mesh is clicked while censorship editing is enabled. */
-  onMeshSelected: ((mesh: THREE.Mesh) => void) | null = null;
+  /** Called with the exact mesh hit and the world-space point that was clicked. */
+  onMeshSelected: ((mesh: THREE.Mesh, hitPoint: THREE.Vector3) => void) | null = null;
 
   constructor(options: StudioViewportOptions) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -127,7 +127,9 @@ export class StudioViewport {
     if (this.censorshipSelectionMode) {
       const hits = this.raycaster.intersectObjects([...this.selectableRoots], true);
       const meshHit = hits.find((hit) => hit.object instanceof THREE.Mesh);
-      if (meshHit?.object instanceof THREE.Mesh) this.onMeshSelected?.(meshHit.object);
+      if (meshHit?.object instanceof THREE.Mesh && meshHit.point) {
+        this.onMeshSelected?.(meshHit.object, meshHit.point.clone());
+      }
       return;
     }
 
