@@ -4,7 +4,9 @@ export const MosaicShader = {
   uniforms: {
     tDiffuse: { value: null },
     uRegionCount: { value: 0 },
-    uRegionRects: { value: Array.from({ length: 32 }, () => [0, 0, 0, 0]) },
+    uRegionRects: {
+      value: Array.from({ length: 32 }, () => new THREE.Vector4(0, 0, 0, 0)),
+    },
     uRegionPixelSizes: { value: Array.from({ length: 32 }, () => 12) },
     uResolution: { value: new THREE.Vector2(1, 1) },
   },
