@@ -10,40 +10,55 @@ import { getLocale, setLocale, t, type Locale } from './i18n';
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Application root element was not found.');
 
-function renderUi(): void {
-  const labels = t();
-  document.documentElement.lang = getLocale();
-  app.innerHTML = `
-    <main class="studio-shell">
-      <header class="studio-toolbar">
-        <strong>${labels.studio.title}</strong>
-        <span>Studio</span>
-        <label>
-          <span class="sr-only">${labels.settings.language}</span>
-          <select id="locale-select" aria-label="${labels.settings.language}">
-            <option value="ja" ${getLocale() === 'ja' ? 'selected' : ''}>${labels.settings.japanese}</option>
-            <option value="en" ${getLocale() === 'en' ? 'selected' : ''}>${labels.settings.english}</option>
-          </select>
-        </label>
-        <form id="model-form" class="model-loader-form">
-          <input id="model-url" type="url" placeholder="${labels.studio.modelUrl}" aria-label="${labels.studio.modelUrl}" />
-          <button type="submit">${labels.studio.loadModel}</button>
-          <span id="model-status" role="status" aria-live="polite"></span>
-        </form>
-      </header>
-      <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
-    </main>
-  `;
-}
-
-renderUi();
+app.innerHTML = `
+  <main class="studio-shell">
+    <header class="studio-toolbar">
+      <strong id="studio-title"></strong>
+      <span id="studio-mode">Studio</span>
+      <label>
+        <span id="language-label" class="sr-only"></span>
+        <select id="locale-select">
+          <option value="ja"></option>
+          <option value="en"></option>
+        </select>
+      </label>
+      <form id="model-form" class="model-loader-form">
+        <input id="model-url" type="url" />
+        <button id="load-model-button" type="submit"></button>
+        <span id="model-status" role="status" aria-live="polite"></span>
+      </form>
+    </header>
+    <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
+  </main>
+`;
 
 const viewportElement = document.querySelector<HTMLElement>('#viewport');
 const form = document.querySelector<HTMLFormElement>('#model-form');
 const urlInput = document.querySelector<HTMLInputElement>('#model-url');
 const status = document.querySelector<HTMLSpanElement>('#model-status');
 const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select');
-if (!viewportElement || !form || !urlInput || !status || !localeSelect) throw new Error('Studio UI elements were not found.');
+const title = document.querySelector<HTMLElement>('#studio-title');
+const languageLabel = document.querySelector<HTMLElement>('#language-label');
+const loadModelButton = document.querySelector<HTMLButtonElement>('#load-model-button');
+if (!viewportElement || !form || !urlInput || !status || !localeSelect || !title || !languageLabel || !loadModelButton) {
+  throw new Error('Studio UI elements were not found.');
+}
+
+function updateUiLanguage(): void {
+  const labels = t();
+  document.documentElement.lang = getLocale();
+  title.textContent = labels.studio.title;
+  languageLabel.textContent = labels.settings.language;
+  localeSelect.setAttribute('aria-label', labels.settings.language);
+  localeSelect.options[0].textContent = labels.settings.japanese;
+  localeSelect.options[1].textContent = labels.settings.english;
+  localeSelect.value = getLocale();
+  urlInput.placeholder = labels.studio.modelUrl;
+  urlInput.setAttribute('aria-label', labels.studio.modelUrl);
+  loadModelButton.textContent = labels.studio.loadModel;
+}
+
+updateUiLanguage();
 
 const viewport = new StudioViewport({ container: viewportElement });
 const { scene, camera, renderer } = viewport;
@@ -99,9 +114,8 @@ form.addEventListener('submit', async (event) => {
 });
 
 localeSelect.addEventListener('change', () => {
-  const locale = localeSelect.value as Locale;
-  setLocale(locale);
-  renderUi();
+  setLocale(localeSelect.value as Locale);
+  updateUiLanguage();
 });
 
 function resize(): void {
