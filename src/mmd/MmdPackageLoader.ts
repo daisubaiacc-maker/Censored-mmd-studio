@@ -16,7 +16,8 @@ export class MmdPackageLoader {
 
     const resourceUrls = new Map<string, string>();
     const blobUrls: string[] = [];
-    const pmxDirectory = pmx.name.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
+    const pmxPath = this.normalizePath(pmx.name);
+    const pmxDirectory = pmxPath.includes('/') ? pmxPath.slice(0, pmxPath.lastIndexOf('/')) : '';
 
     try {
       // Create browser-local URLs for every file in the package so MMDLoader can
@@ -28,12 +29,12 @@ export class MmdPackageLoader {
         );
         blobUrls.push(blobUrl);
 
-        const normalizedName = entry.name.replace(/\\/g, '/').replace(/^\.\//, '');
+        const normalizedName = this.normalizePath(entry.name);
         resourceUrls.set(normalizedName, blobUrl);
         resourceUrls.set(normalizedName.toLowerCase(), blobUrl);
       }
 
-      const pmxUrl = resourceUrls.get(pmx.name.replace(/\\/g, '/'));
+      const pmxUrl = resourceUrls.get(pmxPath) ?? resourceUrls.get(pmxPath.toLowerCase());
       if (!pmxUrl) {
         throw new Error('Failed to create a browser URL for the PMX model.');
       }
@@ -51,8 +52,6 @@ export class MmdPackageLoader {
       const loader = new MMDLoader(manager);
 
       return await new Promise<Object3D>((resolve, reject) => {
-        // MMDLoader.load() is the public model-loading API. It detects PMX from
-        // the .pmx extension and internally performs the PMX parsing/build step.
         loader.load(pmxUrl, resolve, undefined, reject);
       });
     } finally {
@@ -62,18 +61,27 @@ export class MmdPackageLoader {
     }
   }
 
-  private normalizeResourcePath(requestedUrl: string, pmxDirectory: string): string {
-    const decodedUrl = decodeURI(requestedUrl).replace(/\\/g, '/');
-    const withoutQuery = decodedUrl.split(/[?#]/, 1)[0];
+  private normalizePath(path: string): string {
+    return path.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\//, '');
+  }
 
-    if (/^[a-z]+:/i.test(withoutQuery)) {
-      return withoutQuery;
+  private normalizeResourcePath(requestedUrl: string, pmxDirectory: string): string {
+    let decodedUrl = requestedUrl;
+    try {
+      decodedUrl = decodeURI(requestedUrl);
+    } catch {
+      // Keep the original URL when decoding fails.
+    }
+
+    const withoutQuery = decodedUrl.split(/[?#]/, 1)[0];
+    const normalizedRequest = this.normalizePath(withoutQuery);
+
+    if (/^[a-z]+:/i.test(normalizedRequest) || normalizedRequest.startsWith('blob:')) {
+      return normalizedRequest;
     }
 
     const base = pmxDirectory ? `${pmxDirectory}/` : '';
-    const path = withoutQuery.replace(/^\.\//, '').replace(/^\//, '');
-
-    const parts = `${base}${path}`.split('/');
+    const parts = `${base}${normalizedRequest}`.split('/');
     const normalized: string[] = [];
 
     for (const part of parts) {
