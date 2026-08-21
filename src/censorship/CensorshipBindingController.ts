@@ -43,10 +43,15 @@ export class CensorshipBindingController {
       const sizeMode = binding.region.sizeMode ?? 'screen';
 
       if (sizeMode === 'screen') {
-        // width/height are normalized screen dimensions. The initial size is 180x140 CSS pixels.
-        if (binding.region.width <= 0) binding.region.width = 180 / Math.max(width, 1);
-        if (binding.region.height <= 0) binding.region.height = 140 / Math.max(height, 1);
+        // Screen mode is explicitly pixel-sized. Recompute normalized dimensions every
+        // frame so switching from world mode can never leave a world-projected size behind.
+        const screenWidth = binding.region.screenWidth ?? 180;
+        const screenHeight = binding.region.screenHeight ?? 140;
+        binding.region.width = screenWidth / Math.max(width, 1);
+        binding.region.height = screenHeight / Math.max(height, 1);
       } else {
+        // World mode deliberately projects a real 3D size, so perspective changes its
+        // apparent size as the camera moves closer/farther away.
         const worldWidth = binding.region.worldWidth ?? 0.5;
         const worldHeight = binding.region.worldHeight ?? 0.4;
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
