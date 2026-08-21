@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import './styles.css';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
+import { ProjectSceneController } from './core/ProjectSceneController';
+import { ProjectStore } from './core/ProjectStore';
 import { MmdModelLoader } from './mmd/MmdModelLoader';
 import { ModelRegistry } from './mmd/ModelRegistry';
 import { StudioModelSession } from './studio/StudioModelSession';
@@ -74,6 +76,8 @@ const censorship = new CensorshipSystem(renderer, scene, camera);
 const modelLoader = new MmdModelLoader();
 const modelRegistry = new ModelRegistry();
 const modelSession = new StudioModelSession(viewport, modelLoader);
+const projectStore = new ProjectStore();
+const projectScene = new ProjectSceneController(projectStore.get(), modelRegistry);
 
 function frameModel(model: THREE.Object3D): void {
   const box = new THREE.Box3().setFromObject(model);
@@ -89,11 +93,13 @@ function frameModel(model: THREE.Object3D): void {
   camera.updateProjectionMatrix();
 }
 
-/** Load an MMD model into the shared Studio scene and registry. */
-export async function loadMmdModel(url: string, modelId = 'model'): Promise<void> {
+/** Load an MMD model into the shared Studio scene and register it in project data. */
+export async function loadMmdModel(url: string, modelId = `model-${crypto.randomUUID()}`): Promise<void> {
   const model = await modelSession.load({ modelUrl: url });
   model.name = modelId;
   modelRegistry.register(modelId, model);
+  projectScene.registerModel(modelId, url, model.name);
+  projectScene.captureModel(modelId);
   scene.updateMatrixWorld(true);
   frameModel(model);
 }
@@ -105,7 +111,7 @@ form.addEventListener('submit', async (event) => {
 
   status.textContent = t().studio.loading;
   try {
-    await loadMmdModel(url, 'preview-model');
+    await loadMmdModel(url);
     status.textContent = t().studio.loaded;
   } catch (error) {
     console.error(error);
