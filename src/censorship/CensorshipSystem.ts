@@ -8,16 +8,18 @@ import { MosaicShader } from './MosaicShader';
 
 const MAX_REGIONS = 32;
 
-/**
- * Owns the final visual censorship pipeline.
- *
- * Censorship is a render pass rather than a UI overlay, so regions remain
- * part of screenshots/exported frames and can later follow 3D targets.
- */
+export interface CensorshipRenderRegion {
+  region: CensorshipRegion;
+  /** Normalized viewport rectangle. This is ephemeral render data only. */
+  rect: THREE.Vector4;
+}
+
+/** Owns the final visual censorship pipeline. */
 export class CensorshipSystem {
   private readonly composer: EffectComposer;
   private readonly mosaicPass: ShaderPass;
   private regions: CensorshipRegion[] = [];
+  private renderRegions: CensorshipRenderRegion[] = [];
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -33,6 +35,12 @@ export class CensorshipSystem {
 
   setRegions(regions: CensorshipRegion[]): void {
     this.regions = regions.filter((region) => region.enabled).slice(0, MAX_REGIONS);
+    this.renderRegions = [];
+    this.syncUniforms();
+  }
+
+  setRenderRegions(regions: CensorshipRenderRegion[]): void {
+    this.renderRegions = regions.slice(0, MAX_REGIONS);
     this.syncUniforms();
   }
 
@@ -56,19 +64,19 @@ export class CensorshipSystem {
     const shapes = this.mosaicPass.uniforms.uRegionShapes.value as number[];
 
     for (let i = 0; i < MAX_REGIONS; i += 1) {
-      const region = this.regions[i];
-      if (!region) {
+      const renderRegion = this.renderRegions[i];
+      if (!renderRegion) {
         rects[i].set(0, 0, 0, 0);
         pixelSizes[i] = 12;
         shapes[i] = 0;
         continue;
       }
 
-      rects[i].set(region.x, region.y, region.width, region.height);
-      pixelSizes[i] = region.pixelSize ?? 12;
-      shapes[i] = region.shape === 'ellipse' || region.shape === 'circle' ? 1 : 0;
+      rects[i].copy(renderRegion.rect);
+      pixelSizes[i] = renderRegion.region.pixelSize ?? 12;
+      shapes[i] = renderRegion.region.shape === 'ellipse' || renderRegion.region.shape === 'circle' ? 1 : 0;
     }
 
-    this.mosaicPass.uniforms.uRegionCount.value = this.regions.length;
+    this.mosaicPass.uniforms.uRegionCount.value = this.renderRegions.length;
   }
 }
