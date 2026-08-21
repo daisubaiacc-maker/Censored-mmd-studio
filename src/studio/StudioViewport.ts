@@ -19,9 +19,12 @@ export class StudioViewport {
   private readonly pointerDown = new THREE.Vector2();
   private readonly selectableRoots = new Set<THREE.Object3D>();
   private pointerMoved = false;
+  private censorshipSelectionMode = false;
 
   /** Called when a selectable model root is clicked in the viewport. */
   onObjectSelected: ((object: THREE.Object3D) => void) | null = null;
+  /** Called when a mesh is clicked while censorship editing is enabled. */
+  onMeshSelected: ((mesh: THREE.Mesh) => void) | null = null;
 
   constructor(options: StudioViewportOptions) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -59,6 +62,10 @@ export class StudioViewport {
   setSelectableRoots(objects: Iterable<THREE.Object3D>): void {
     this.selectableRoots.clear();
     for (const object of objects) this.selectableRoots.add(object);
+  }
+
+  setCensorshipSelectionMode(enabled: boolean): void {
+    this.censorshipSelectionMode = enabled;
   }
 
   attachTransform(object: THREE.Object3D | null): void {
@@ -116,6 +123,14 @@ export class StudioViewport {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    if (this.censorshipSelectionMode) {
+      const hits = this.raycaster.intersectObjects([...this.selectableRoots], true);
+      const meshHit = hits.find((hit) => hit.object instanceof THREE.Mesh);
+      if (meshHit?.object instanceof THREE.Mesh) this.onMeshSelected?.(meshHit.object);
+      return;
+    }
+
     const roots = [...this.selectableRoots];
     const hits = this.raycaster.intersectObjects(roots, true);
     if (hits.length === 0) return;
