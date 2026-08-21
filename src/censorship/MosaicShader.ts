@@ -1,10 +1,12 @@
+import * as THREE from 'three';
+
 export const MosaicShader = {
   uniforms: {
     tDiffuse: { value: null },
     uRegionCount: { value: 0 },
     uRegionRects: { value: Array.from({ length: 32 }, () => [0, 0, 0, 0]) },
     uRegionPixelSizes: { value: Array.from({ length: 32 }, () => 12) },
-    uResolution: { value: [1, 1] as [number, number] },
+    uResolution: { value: new THREE.Vector2(1, 1) },
   },
 
   vertexShader: `
