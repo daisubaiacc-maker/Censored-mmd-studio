@@ -138,7 +138,7 @@ function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `m
 }
 
 viewport.onObjectSelected = selectModel;
-viewport.onMeshSelected = (mesh) => {
+viewport.onMeshSelected = (mesh, hitPoint) => {
   const root = [...modelRegistry.values()].find((entry) => {
     let current: THREE.Object3D | null = mesh;
     while (current) {
@@ -162,7 +162,7 @@ viewport.onMeshSelected = (mesh) => {
     pixelSize: 18,
     binding: { modelId: root.id, objectName: mesh.name },
   };
-  censorshipBindings.bind(region, mesh);
+  censorshipBindings.bind(region, mesh, hitPoint);
   censorshipSelectionMode = false;
   viewport.setCensorshipSelectionMode(false);
   censorshipEditButton.textContent = '検閲対象を選択';
@@ -230,7 +230,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => 
   const step = 0.1 * sign;
   if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
   else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0));
-  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1));
+  else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' === 'z' ? 1 + step : 1));
   if (modelSelect.value) projectScene.captureModel(modelSelect.value);
 }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
