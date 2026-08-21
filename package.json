@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "three": "^0.180.0"
   },
   "devDependencies": {
