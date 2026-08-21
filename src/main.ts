@@ -97,6 +97,10 @@ function frameModel(model: THREE.Object3D): void {
   camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15);
   camera.lookAt(center);
 }
+function syncTransformGizmo(): void {
+  viewport.setTransformMode(transform.getMode());
+  viewport.attachTransform(selection.selectedObject);
+}
 function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `model-${crypto.randomUUID()}`): void {
   model.name = modelId;
   scene.add(model);
@@ -107,6 +111,7 @@ function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `m
   transform.select(model);
   refreshModelSelect();
   modelSelect.value = modelId;
+  syncTransformGizmo();
   scene.updateMatrixWorld(true);
   frameModel(model);
 }
@@ -151,8 +156,15 @@ modelSelect.addEventListener('change', () => {
   const model = modelSelect.value ? modelRegistry.get(modelSelect.value)?.root : null;
   selection.select(model ?? null);
   transform.select(model ?? null);
+  syncTransformGizmo();
 });
-transformMode.addEventListener('change', () => transform.setMode(transformMode.value as 'translate' | 'rotate' | 'scale'));
+transformMode.addEventListener('change', () => {
+  transform.setMode(transformMode.value as 'translate' | 'rotate' | 'scale');
+  syncTransformGizmo();
+});
+viewport.transformControls.addEventListener('objectChange', () => {
+  if (modelSelect.value) projectScene.captureModel(modelSelect.value);
+});
 document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => button.addEventListener('click', () => {
   const axis = button.dataset.axis as 'x' | 'y' | 'z';
   const sign = Number(button.dataset.sign);
