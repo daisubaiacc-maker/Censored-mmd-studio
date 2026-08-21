@@ -3,10 +3,8 @@ import './styles.css';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
 import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
-import { MmdModelLoader } from './mmd/MmdModelLoader';
 import { MmdPackageLoader } from './mmd/MmdPackageLoader';
 import { ModelRegistry } from './mmd/ModelRegistry';
-import { StudioModelSession } from './studio/StudioModelSession';
 import { StudioViewport } from './studio/StudioViewport';
 import { SelectionController } from './studio/SelectionController';
 import { TransformController } from './studio/TransformController';
@@ -70,10 +68,8 @@ scene.background = new THREE.Color(0x181818);
 scene.add(new THREE.GridHelper(10, 20, 0x555555, 0x333333));
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
 const censorship = new CensorshipSystem(renderer, scene, camera);
-const modelLoader = new MmdModelLoader();
 const packageLoader = new MmdPackageLoader();
 const modelRegistry = new ModelRegistry();
-const modelSession = new StudioModelSession(viewport, modelLoader);
 const projectStore = new ProjectStore();
 const projectScene = new ProjectSceneController(projectStore.get(), modelRegistry);
 const selection = new SelectionController();
@@ -94,7 +90,7 @@ function frameModel(model: THREE.Object3D): void {
   camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15);
   camera.lookAt(center);
 }
-async function registerLoadedModel(model: THREE.Object3D, source: string): Promise<void> {
+function registerLoadedModel(model: THREE.Object3D, source: string): void {
   const modelId = `model-${crypto.randomUUID()}`;
   model.name = modelId;
   scene.add(model);
@@ -116,7 +112,7 @@ form.addEventListener('submit', async (event) => {
   status.textContent = t().studio.loading;
   try {
     const model = await packageLoader.loadZip(file);
-    await registerLoadedModel(model, `local:${file.name}`);
+    registerLoadedModel(model, `local:${file.name}`);
     status.textContent = t().studio.loaded;
   } catch (error) {
     console.error(error);
