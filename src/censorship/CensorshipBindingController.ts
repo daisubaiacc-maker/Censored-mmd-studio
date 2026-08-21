@@ -24,6 +24,10 @@ export class CensorshipBindingController {
   }
 
   update(camera: THREE.Camera, width: number, height: number): void {
+    const minDimension = Math.max(1, Math.min(width, height));
+    const defaultWidth = 180 / minDimension;
+    const defaultHeight = 140 / minDimension;
+
     for (const binding of this.bindings) {
       const worldPosition = new THREE.Vector3();
       binding.object.getWorldPosition(worldPosition);
@@ -35,15 +39,20 @@ export class CensorshipBindingController {
 
       const centerX = THREE.MathUtils.clamp(projected.x * 0.5 + 0.5, 0, 1);
       const centerY = THREE.MathUtils.clamp(projected.y * 0.5 + 0.5, 0, 1);
-      const minDimension = Math.max(1, Math.min(width, height));
-      const defaultWidth = 180 / minDimension;
-      const defaultHeight = 140 / minDimension;
-      const offset = binding.region.binding?.offset;
-
-      binding.region.x = THREE.MathUtils.clamp(centerX - binding.region.width * 0.5 + (offset?.[0] ?? 0), 0, 1);
-      binding.region.y = THREE.MathUtils.clamp(centerY - binding.region.height * 0.5 + (offset?.[1] ?? 0), 0, 1);
       if (binding.region.width <= 0) binding.region.width = defaultWidth;
       if (binding.region.height <= 0) binding.region.height = defaultHeight;
+
+      const offset = binding.region.binding?.offset;
+      binding.region.x = THREE.MathUtils.clamp(
+        centerX - binding.region.width * 0.5 + (offset?.[0] ?? 0),
+        0,
+        1,
+      );
+      binding.region.y = THREE.MathUtils.clamp(
+        centerY - binding.region.height * 0.5 + (offset?.[1] ?? 0),
+        0,
+        1,
+      );
       binding.region.enabled = true;
     }
     this.syncRegions();
