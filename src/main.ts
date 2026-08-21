@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import './styles.css';
+import { CensorshipBindingController } from './censorship/CensorshipBindingController';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
+import type { CensorshipRegion } from './censorship/CensorshipRegion';
 import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
 import { saveCurrentProject, loadProjectFromFile } from './core/ProjectFileActions';
@@ -37,6 +39,9 @@ app.innerHTML = `
         <button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button>
         <button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button>
       </div>
+      <hr />
+      <button id="censorship-edit-button" type="button">検閲対象を選択</button>
+      <span id="censorship-status" role="status" aria-live="polite"></span>
     </aside>
     <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
   </main>`;
@@ -54,6 +59,8 @@ const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-proje
 const projectFileInput = document.querySelector<HTMLInputElement>('#project-file-input')!;
 const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
 const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode')!;
+const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit-button')!;
+const censorshipStatus = document.querySelector<HTMLSpanElement>('#censorship-status')!;
 
 function updateUiLanguage(): void {
   const labels = t();
@@ -75,12 +82,14 @@ scene.background = new THREE.Color(0x181818);
 scene.add(new THREE.GridHelper(10, 20, 0x555555, 0x333333));
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
 const censorship = new CensorshipSystem(renderer, scene, camera);
+const censorshipBindings = new CensorshipBindingController(censorship);
 const packageLoader = new MmdPackageLoader();
 const modelRegistry = new ModelRegistry();
 const projectStore = new ProjectStore();
 const projectScene = new ProjectSceneController(projectStore.get(), modelRegistry);
 const selection = new SelectionController();
 const transform = new TransformController();
+let censorshipSelectionMode = false;
 
 function refreshModelSelect(): void {
   const current = modelSelect.value;
@@ -129,6 +138,34 @@ function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `m
 }
 
 viewport.onObjectSelected = selectModel;
+viewport.onMeshSelected = (mesh) => {
+  const root = [...modelRegistry.values()].find((entry) => {
+    let current: THREE.Object3D | null = mesh;
+    while (current) {
+      if (current === entry.root) return true;
+      current = current.parent;
+    }
+    return false;
+  });
+  if (!root) return;
+  const region: CensorshipRegion = {
+    id: `censor-${crypto.randomUUID()}`,
+    space: 'model',
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    effect: 'mosaic',
+    enabled: true,
+    pixelSize: 18,
+    binding: { modelId: root.id, objectName: mesh.name },
+  };
+  censorshipBindings.bind(region, mesh);
+  censorshipSelectionMode = false;
+  viewport.setCensorshipSelectionMode(false);
+  censorshipEditButton.textContent = '検閲対象を選択';
+  censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'}`;
+};
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -143,6 +180,13 @@ form.addEventListener('submit', async (event) => {
     console.error(error);
     status.textContent = t().studio.failed;
   }
+});
+
+censorshipEditButton.addEventListener('click', () => {
+  censorshipSelectionMode = !censorshipSelectionMode;
+  viewport.setCensorshipSelectionMode(censorshipSelectionMode);
+  censorshipEditButton.textContent = censorshipSelectionMode ? '検閲選択を終了' : '検閲対象を選択';
+  censorshipStatus.textContent = censorshipSelectionMode ? 'Viewport上のメッシュをクリックしてください' : '';
 });
 
 saveProjectButton.addEventListener('click', () => {
@@ -189,7 +233,13 @@ document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => 
 }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
 window.addEventListener('resize', () => { viewport.resize(viewportElement); const rect = viewportElement.getBoundingClientRect(); censorship.resize(Math.max(1, rect.width), Math.max(1, rect.height)); });
-function animate(): void { requestAnimationFrame(animate); viewport.render(); censorship.render(); }
+function animate(): void {
+  requestAnimationFrame(animate);
+  const rect = viewportElement.getBoundingClientRect();
+  censorshipBindings.update(camera, Math.max(1, rect.width), Math.max(1, rect.height));
+  viewport.render();
+  censorship.render();
+}
 viewport.resize(viewportElement);
 animate();
 window.addEventListener('beforeunload', () => viewport.dispose(), { once: true });
