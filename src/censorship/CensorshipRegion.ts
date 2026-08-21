@@ -2,6 +2,7 @@ export type CensorshipEffect = 'mosaic' | 'solid' | 'blur';
 export type CensorshipRegionSpace = 'screen' | 'model';
 export type CensorshipShape = 'rectangle' | 'ellipse' | 'circle' | 'custom';
 export type CensorshipOrientation = 'world' | 'billboard' | 'screen';
+export type CensorshipSizeMode = 'screen' | 'world';
 
 export interface CensorshipBinding {
   modelId: string;
@@ -11,13 +12,9 @@ export interface CensorshipBinding {
 }
 
 export interface CensorshipObservationRule {
-  /** Focus target that must be intentionally observed. */
   targetId: string;
-  /** Whether observation can activate this region. */
   activateOnFocus: boolean;
-  /** Continuous focus time required before activation. */
   activationGraceMs: number;
-  /** Keep the region active after activation until reset. */
   latch: boolean;
 }
 
@@ -27,6 +24,7 @@ export interface CensorshipRegion {
   space: CensorshipRegionSpace;
   shape: CensorshipShape;
   orientation: CensorshipOrientation;
+  sizeMode?: CensorshipSizeMode;
   x: number;
   y: number;
   width: number;
