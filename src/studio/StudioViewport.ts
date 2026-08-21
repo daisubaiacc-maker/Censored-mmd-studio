@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
 export interface StudioViewportOptions {
   container: HTMLElement;
@@ -9,6 +10,7 @@ export class StudioViewport {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
   readonly renderer: THREE.WebGLRenderer;
+  readonly transformControls: TransformControls;
   private readonly resizeObserver: ResizeObserver;
 
   constructor(options: StudioViewportOptions) {
@@ -21,6 +23,11 @@ export class StudioViewport {
     const key = new THREE.DirectionalLight(0xffffff, 2);
     key.position.set(2, 4, 3);
     this.scene.add(key);
+
+    this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+    this.transformControls.setSpace('world');
+    this.scene.add(this.transformControls.getHelper());
+
     this.resizeObserver = new ResizeObserver(() => this.resize(options.container));
     this.resizeObserver.observe(options.container);
     this.resize(options.container);
@@ -28,6 +35,15 @@ export class StudioViewport {
 
   addPreviewObject(object: THREE.Object3D): void {
     this.scene.add(object);
+  }
+
+  attachTransform(object: THREE.Object3D | null): void {
+    if (object) this.transformControls.attach(object);
+    else this.transformControls.detach();
+  }
+
+  setTransformMode(mode: 'translate' | 'rotate' | 'scale'): void {
+    this.transformControls.setMode(mode);
   }
 
   resize(container: HTMLElement): void {
@@ -45,6 +61,7 @@ export class StudioViewport {
 
   dispose(): void {
     this.resizeObserver.disconnect();
+    this.transformControls.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
