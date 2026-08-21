@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { Object3D, SkinnedMesh, Bone } from 'three';
 
 export interface MmdBoneInfo {
@@ -22,13 +23,8 @@ export function inspectMmdModel(root: Object3D): MmdModelMetadata {
   const meshes: MmdMeshInfo[] = [];
 
   root.traverse((node) => {
-    if (node.isBone) {
-      bones.push({ name: node.name, node: node as Bone });
-    }
-
-    if (node.isSkinnedMesh) {
-      meshes.push({ name: node.name, node: node as SkinnedMesh });
-    }
+    if (node instanceof THREE.Bone) bones.push({ name: node.name, node });
+    if (node instanceof THREE.SkinnedMesh) meshes.push({ name: node.name, node });
   });
 
   return { root, bones, meshes };
