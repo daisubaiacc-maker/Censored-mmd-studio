@@ -23,6 +23,8 @@ Project
 
 Stable internal keys should be used for persisted data. UI language must never be baked into saved project data.
 
+Project files should carry an explicit format version so future schema changes can be migrated rather than making older projects unusable.
+
 ## 2. Scene is shared by Studio and Experience
 
 Studio and Experience should operate on the same scene representation.
@@ -152,7 +154,47 @@ Internal identifiers remain English/stable. UI labels are translated through an 
 
 Japanese is the initial UI language, with English as the initial secondary language. Additional languages should be addable without changing project data.
 
-## 13. Guiding principle
+## 13. Undo / Redo
+
+Studio editing should be designed so meaningful state changes can eventually participate in Undo/Redo. Do not couple editing logic so tightly to UI widgets that adding command/history tracking later requires rewriting every editor feature.
+
+Full history management is not required in the initial implementation; the important requirement is keeping state changes identifiable and reversible where practical.
+
+## 14. Model references versus scene state
+
+A scene should reference an imported model and store its scene-specific state (transform, pose/animation state, visibility, semantic overrides, etc.) rather than duplicating the model asset itself.
+
+This allows model assets to be reused across scenes and leaves room for model replacement/update workflows later.
+
+## 15. Pose versus Animation
+
+Do not permanently treat a static pose and an animation as the same data type.
+
+A pose is a snapshot/state that can be edited directly. An animation is time-varying behavior that may contain or produce poses.
+
+The scene should be able to reference either without requiring a future rewrite of the model/character representation.
+
+## 16. Presets and default worlds
+
+Leave room for reusable presets and default environments/worlds. A preset should be able to initialize scene content without becoming a special one-off scene format.
+
+This supports the planned workflow of starting from an empty Studio, a prepared preset, or a default game world.
+
+## 17. Error isolation and recovery
+
+Invalid or unsupported models, missing textures, malformed assets, and similar failures should be isolated to the affected asset where possible rather than crashing the entire application.
+
+The UI should be able to report a useful failure and allow the user to continue working on the rest of the project.
+
+## 18. Security boundary for imported assets
+
+User-provided models and external asset URLs must be treated as untrusted input. Asset loading and parsing should be isolated from application control flow and should not assume that model data is safe merely because it is a graphics asset.
+
+## 19. Development diagnostics
+
+Leave room for developer diagnostics such as FPS, draw calls, triangle counts, texture/memory indicators where available, and asset-loading timing. These are diagnostic tools, not user-facing performance requirements.
+
+## 20. Guiding principle
 
 When choosing between a quick implementation and a small abstraction that preserves a clearly foreseeable future feature, prefer the latter when it does not add significant present complexity.
 
