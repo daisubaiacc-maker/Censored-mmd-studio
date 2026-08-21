@@ -5,16 +5,18 @@ import type { CensorshipSystem } from './CensorshipSystem';
 interface BoundObject {
   region: CensorshipRegion;
   object: THREE.Object3D;
+  localPoint: THREE.Vector3;
 }
 
-/** Bridges target objects to camera-facing censorship shapes in screen space. */
+/** Bridges exact target points to camera-facing censorship shapes in screen space. */
 export class CensorshipBindingController {
   private readonly bindings: BoundObject[] = [];
 
   constructor(private readonly censorship: CensorshipSystem) {}
 
-  bind(region: CensorshipRegion, object: THREE.Object3D): void {
-    this.bindings.push({ region, object });
+  bind(region: CensorshipRegion, object: THREE.Object3D, worldPoint?: THREE.Vector3): void {
+    const localPoint = worldPoint ? object.worldToLocal(worldPoint.clone()) : new THREE.Vector3();
+    this.bindings.push({ region, object, localPoint });
     this.syncRegions();
   }
 
@@ -29,8 +31,7 @@ export class CensorshipBindingController {
     const defaultHeight = 140 / minDimension;
 
     for (const binding of this.bindings) {
-      const worldPosition = new THREE.Vector3();
-      binding.object.getWorldPosition(worldPosition);
+      const worldPosition = binding.object.localToWorld(binding.localPoint.clone());
       const projected = worldPosition.project(camera);
       if (projected.z < -1 || projected.z > 1) {
         binding.region.enabled = false;
