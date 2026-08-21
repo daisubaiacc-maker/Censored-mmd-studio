@@ -30,10 +30,6 @@ export class CensorshipBindingController {
   }
 
   update(camera: THREE.Camera, width: number, height: number): void {
-    const minDimension = Math.max(1, Math.min(width, height));
-    const defaultWidth = 180 / minDimension;
-    const defaultHeight = 140 / minDimension;
-
     for (const binding of this.bindings) {
       const worldPosition = binding.object.localToWorld(binding.localPoint.clone());
       const projected = worldPosition.project(camera);
@@ -44,8 +40,27 @@ export class CensorshipBindingController {
 
       const centerX = THREE.MathUtils.clamp(projected.x * 0.5 + 0.5, 0, 1);
       const centerY = THREE.MathUtils.clamp(projected.y * 0.5 + 0.5, 0, 1);
-      if (binding.region.width <= 0) binding.region.width = defaultWidth;
-      if (binding.region.height <= 0) binding.region.height = defaultHeight;
+      const sizeMode = binding.region.sizeMode ?? 'screen';
+
+      if (sizeMode === 'screen') {
+        // Screen-space dimensions are pixels converted to UV units. They do not
+        // change when the camera zooms or orbits.
+        const pixelWidth = binding.region.width > 0 ? binding.region.width * width : 180;
+        const pixelHeight = binding.region.height > 0 ? binding.region.height * height : 140;
+        binding.region.width = pixelWidth / Math.max(width, 1);
+        binding.region.height = pixelHeight / Math.max(height, 1);
+      } else {
+        // World-space dimensions are projected every frame, so camera zoom changes
+        // their apparent size as expected.
+        const worldSize = Math.max(binding.region.width, binding.region.height, 0.01);
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+        const half = worldSize * 0.5;
+        const projectedRight = worldPosition.clone().addScaledVector(right, half).project(camera);
+        const projectedUp = worldPosition.clone().addScaledVector(up, half).project(camera);
+        binding.region.width = Math.abs(projectedRight.x - projected.x);
+        binding.region.height = Math.abs(projectedUp.y - projected.y);
+      }
 
       const offset = binding.region.binding?.offset;
       binding.region.x = THREE.MathUtils.clamp(
