@@ -3,6 +3,7 @@ import './styles.css';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
 import { MmdModelLoader } from './mmd/MmdModelLoader';
 import { ModelRegistry } from './mmd/ModelRegistry';
+import { StudioModelSession } from './studio/StudioModelSession';
 import { StudioViewport } from './studio/StudioViewport';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -31,13 +32,13 @@ scene.add(grid);
 const censorship = new CensorshipSystem(renderer, scene, camera);
 const modelLoader = new MmdModelLoader();
 const modelRegistry = new ModelRegistry();
+const modelSession = new StudioModelSession(viewport, modelLoader);
 
-/** Load an MMD model into the shared Studio scene. */
+/** Load an MMD model into the shared Studio scene and registry. */
 export async function loadMmdModel(url: string, modelId: string): Promise<void> {
-  const model = await modelLoader.load(url);
+  const model = await modelSession.load({ modelUrl: url });
   model.name = modelId;
   modelRegistry.register(modelId, model);
-  scene.add(model);
   scene.updateMatrixWorld(true);
 }
 
@@ -50,6 +51,7 @@ window.addEventListener('resize', resize);
 
 function animate(): void {
   requestAnimationFrame(animate);
+  viewport.render();
   censorship.render();
 }
 
