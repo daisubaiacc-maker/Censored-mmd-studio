@@ -29,13 +29,9 @@ export class MmdPackageLoader {
     });
 
     const loader = new MMDLoader(manager);
-    try {
-      return await new Promise<Object3D>((resolve, reject) => {
-        loader.load(modelUrl, resolve, undefined, reject);
-      });
-    } finally {
-      for (const url of resources.values()) URL.revokeObjectURL(url);
-    }
+    return await new Promise<Object3D>((resolve, reject) => {
+      loader.load(modelUrl, resolve, undefined, reject);
+    });
   }
 
   private normalize(path: string): string {
