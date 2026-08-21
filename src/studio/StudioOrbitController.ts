@@ -8,7 +8,7 @@ export interface StudioOrbitOptions {
   maxDistance?: number;
 }
 
-/** Mouse orbit camera for Studio mode. The camera remains independent from the scene/model. */
+/** Fully free Studio camera orbit. Studio has no human-body viewing constraints. */
 export class StudioOrbitController {
   private target = new THREE.Vector3();
   private distance: number;
@@ -28,8 +28,8 @@ export class StudioOrbitController {
     this.distance = options.distance ?? 5;
     this.azimuth = options.azimuth ?? 0;
     this.elevation = options.elevation ?? 0.15;
-    this.minDistance = options.minDistance ?? 0.25;
-    this.maxDistance = options.maxDistance ?? 100;
+    this.minDistance = options.minDistance ?? 0.05;
+    this.maxDistance = options.maxDistance ?? 1000;
 
     viewport.addEventListener('pointerdown', this.onPointerDown);
     viewport.addEventListener('pointermove', this.onPointerMove);
@@ -77,7 +77,8 @@ export class StudioOrbitController {
     this.lastX = event.clientX;
     this.lastY = event.clientY;
     this.azimuth -= dx * 0.01;
-    this.elevation = THREE.MathUtils.clamp(this.elevation - dy * 0.01, -1.45, 1.45);
+    // No elevation clamp: Studio camera is intentionally unconstrained.
+    this.elevation -= dy * 0.01;
     this.apply();
   };
 
