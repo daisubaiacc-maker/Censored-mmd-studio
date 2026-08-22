@@ -11,7 +11,7 @@ export class CensorshipEditorController {
   private readonly outline: HTMLDivElement;
   private readonly handles = new Map<string, HTMLDivElement>();
   private selected: CensorshipRegion | null = null;
-  private drag: { kind: DragKind; startX: number; startY: number; startRect: DOMRect; handle?: string; startAngle?: number } | null = null;
+  private drag: { kind: DragKind; startX: number; startY: number; startRect: DOMRect; handle?: string; startAngle?: number; startRotation?: number } | null = null;
   private width = 1;
   private height = 1;
   onChange: CensorshipEditorChange | null = null;
@@ -42,12 +42,11 @@ export class CensorshipEditorController {
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (!this.selected || event.button !== 0) return;
     event.preventDefault(); event.stopPropagation();
-    const target = event.target as HTMLElement; const handle = target.dataset.handle;
-    const rect = this.outline.getBoundingClientRect();
-    let kind: DragKind = handle === 'rot' ? 'rotate' : handle ? 'resize' : 'move';
-    if (kind === 'rotate' && this.selected.space !== 'model') kind = 'move';
+    const target = event.target as HTMLElement; const handle = target.dataset.handle; const rect = this.outline.getBoundingClientRect();
+    let kind: DragKind = handle === 'rot' ? 'rotate' : handle ? 'resize' : 'move'; if (kind === 'rotate' && this.selected.space !== 'model') kind = 'move';
     const startAngle = kind === 'rotate' ? Math.atan2(event.clientY - (rect.top + rect.height * 0.5), event.clientX - (rect.left + rect.width * 0.5)) : undefined;
-    this.drag = { kind, startX: event.clientX, startY: event.clientY, startRect: rect, handle, startAngle };
+    const startRotation = kind === 'rotate' && this.selected.model ? this.selected.model.rotation[2] : undefined;
+    this.drag = { kind, startX: event.clientX, startY: event.clientY, startRect: rect, handle, startAngle, startRotation };
     (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
     window.addEventListener('pointermove', this.handlePointerMove); window.addEventListener('pointerup', this.handlePointerUp, { once: true });
   };
@@ -56,7 +55,7 @@ export class CensorshipEditorController {
     if (!this.drag || !this.selected) return;
     if (this.drag.kind === 'move') this.bindings.moveScreenProjected(this.selected, this.camera, event.clientX - this.drag.startX, event.clientY - this.drag.startY, this.width, this.height);
     else if (this.drag.kind === 'resize') this.bindings.resizeProjected(this.selected, this.camera, event.clientX - this.drag.startX, event.clientY - this.drag.startY, this.drag.handle ?? 'se', this.width, this.height);
-    else this.bindings.rotateProjected(this.selected, this.camera, event.clientX, event.clientY, this.width, this.height, this.drag.startAngle ?? 0);
+    else this.bindings.rotateProjected(this.selected, this.camera, event.clientX, event.clientY, this.width, this.height, this.drag.startAngle ?? 0, this.drag.startRotation ?? 0);
   };
 
   private readonly handlePointerUp = (): void => { this.drag = null; window.removeEventListener('pointermove', this.handlePointerMove); };
