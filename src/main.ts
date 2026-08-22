@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import './styles.css';
 import { CensorshipBindingController } from './censorship/CensorshipBindingController';
+import { CensorshipEditorController } from './censorship/CensorshipEditorController';
 import { CensorshipSystem } from './censorship/CensorshipSystem';
 import type { CensorshipRegion } from './censorship/CensorshipRegion';
 import { ProjectSceneController } from './core/ProjectSceneController';
@@ -64,6 +65,7 @@ const { scene, camera, renderer } = viewport;
 scene.background = new THREE.Color(0x181818); scene.add(new THREE.GridHelper(10, 20, 0x555555, 0x333333)); scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
 const censorship = new CensorshipSystem(renderer, scene, camera);
 const censorshipBindings = new CensorshipBindingController(censorship, scene);
+const censorshipEditor = new CensorshipEditorController(viewportElement, camera, renderer, censorshipBindings);
 const packageLoader = new MmdPackageLoader(); const modelRegistry = new ModelRegistry(); const projectStore = new ProjectStore(); const projectScene = new ProjectSceneController(projectStore.get(), modelRegistry); const selection = new SelectionController(); const transform = new TransformController();
 let censorshipSelectionMode = false;
 
@@ -77,54 +79,27 @@ viewport.onObjectSelected = selectModel;
 viewport.onMeshSelected = (mesh, hitPoint) => {
   const root = [...modelRegistry.values()].find((entry) => { let current: THREE.Object3D | null = mesh; while (current) { if (current === entry.root) return true; current = current.parent; } return false; });
   if (!root) return;
-
-  const mode = censorshipSizeMode.value;
-  if (mode === 'screen') {
-    const region: CensorshipRegion = {
-      id: `censor-${crypto.randomUUID()}`,
-      space: 'screen',
-      shape: 'rectangle',
-      effect: 'mosaic',
-      enabled: true,
-      pixelSize: Number(censorshipPixelSize.value),
-      screen: { x: 0, y: 0, width: 180, height: 140 },
-    };
+  let region: CensorshipRegion;
+  if (censorshipSizeMode.value === 'screen') {
+    region = { id: `censor-${crypto.randomUUID()}`, space: 'screen', shape: 'rectangle', effect: 'mosaic', enabled: true, pixelSize: Number(censorshipPixelSize.value), screen: { x: viewportElement.clientWidth * 0.5 - 90, y: viewportElement.clientHeight * 0.5 - 70, width: 180, height: 140 } };
     censorshipBindings.addScreenRegion(region);
-    censorshipSelectionMode = false;
-    viewport.setCensorshipSelectionMode(false);
-    censorshipEditButton.textContent = '検閲対象を選択';
     censorshipStatus.textContent = '登録: 画面固定 Rectangle';
-    return;
+  } else {
+    region = { id: `censor-${crypto.randomUUID()}`, space: 'model', shape: 'rectangle', effect: 'mosaic', enabled: true, pixelSize: Number(censorshipPixelSize.value), binding: { modelId: root.id, objectName: mesh.name, localOffset: [0, 0, 0] }, model: { position: [0, 0, 0], rotation: [0, 0, 0], width: 0.5, height: 0.4, billboard: true } };
+    censorshipBindings.bind(region, mesh, hitPoint);
+    censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle / モデル追従 / Billboard ON`;
   }
-
-  const region: CensorshipRegion = {
-    id: `censor-${crypto.randomUUID()}`,
-    space: 'model',
-    shape: 'rectangle',
-    effect: 'mosaic',
-    enabled: true,
-    pixelSize: Number(censorshipPixelSize.value),
-    binding: { modelId: root.id, objectName: mesh.name, localOffset: [0, 0, 0] },
-    model: {
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-      width: 0.5,
-      height: 0.4,
-      billboard: true,
-    },
-  };
-  censorshipBindings.bind(region, mesh, hitPoint);
+  censorshipEditor.select(region);
   censorshipSelectionMode = false;
   viewport.setCensorshipSelectionMode(false);
   censorshipEditButton.textContent = '検閲対象を選択';
-  censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle / モデル追従 / Billboard ON`;
 };
 
 censorshipPixelSize.addEventListener('input', () => { for (const region of censorshipBindings.getRegions()) region.pixelSize = Number(censorshipPixelSize.value); });
-censorshipSizeMode.addEventListener('change', () => { censorshipStatus.textContent = censorshipSizeMode.value === 'model' ? '次のクリックでモデル追従検閲を配置します' : '次のクリックで画面固定検閲を配置します'; });
+censorshipSizeMode.addEventListener('change', () => { censorshipEditor.select(null); censorshipStatus.textContent = censorshipSizeMode.value === 'model' ? '次のクリックでモデル追従検閲を配置します' : '次のクリックで画面固定検閲を配置します'; });
+censorshipEditButton.addEventListener('click', () => { censorshipSelectionMode = !censorshipSelectionMode; if (censorshipSelectionMode) censorshipEditor.select(null); viewport.setCensorshipSelectionMode(censorshipSelectionMode); censorshipEditButton.textContent = censorshipSelectionMode ? '検閲対象を選択終了' : '検閲対象を選択'; censorshipStatus.textContent = censorshipSelectionMode ? 'Viewport上のメッシュをクリックしてください' : ''; });
 
 form.addEventListener('submit', async (event) => { event.preventDefault(); const file = modelFile.files?.[0]; if (!file) return; status.textContent = t().studio.loading; try { const model = await packageLoader.loadZip(file); registerLoadedModel(model, `local:${file.name}`); status.textContent = t().studio.loaded; } catch (error) { console.error(error); status.textContent = t().studio.failed; } });
-censorshipEditButton.addEventListener('click', () => { censorshipSelectionMode = !censorshipSelectionMode; viewport.setCensorshipSelectionMode(censorshipSelectionMode); censorshipEditButton.textContent = censorshipSelectionMode ? '検閲選択を終了' : '検閲対象を選択'; censorshipStatus.textContent = censorshipSelectionMode ? 'Viewport上のメッシュをクリックしてください' : ''; });
 saveProjectButton.addEventListener('click', () => { projectScene.captureAll(); saveCurrentProject(projectStore, `${projectStore.get().name || 'censored-mmd-project'}.json`); });
 loadProjectButton.addEventListener('click', () => projectFileInput.click());
 projectFileInput.addEventListener('change', async () => { const file = projectFileInput.files?.[0]; projectFileInput.value = ''; if (!file) return; status.textContent = 'プロジェクト読み込み中…'; try { await loadProjectFromFile(projectStore, file); const modelRef = projectStore.get().models[0]; if (!modelRef) throw new Error('Project contains no model.'); status.textContent = 'プロジェクトを読み込みました。モデルZIPを再選択してください。'; } catch (error) { console.error(error); status.textContent = 'プロジェクトの読み込みに失敗しました'; } });
@@ -134,5 +109,5 @@ viewport.transformControls.addEventListener('objectChange', () => { if (modelSel
 document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => button.addEventListener('click', () => { const axis = button.dataset.axis as 'x' | 'y' | 'z'; const sign = Number(button.dataset.sign); if (!selection.selectedObject) return; const step = 0.1 * sign; if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0)); else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0)); else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1)); if (modelSelect.value) projectScene.captureModel(modelSelect.value); }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
 window.addEventListener('resize', () => { viewport.resize(viewportElement); const rect = viewportElement.getBoundingClientRect(); censorship.resize(Math.max(1, rect.width), Math.max(1, rect.height)); });
-function animate(): void { requestAnimationFrame(animate); const rect = viewportElement.getBoundingClientRect(); censorshipBindings.update(camera, Math.max(1, rect.width), Math.max(1, rect.height)); viewport.render(); censorship.render(); }
-viewport.resize(viewportElement); animate(); window.addEventListener('beforeunload', () => viewport.dispose(), { once: true });
+function animate(): void { requestAnimationFrame(animate); const rect = viewportElement.getBoundingClientRect(); censorshipBindings.update(camera, Math.max(1, rect.width), Math.max(1, rect.height)); censorshipEditor.update(Math.max(1, rect.width), Math.max(1, rect.height), camera); viewport.render(); censorship.render(); }
+viewport.resize(viewportElement); animate(); window.addEventListener('beforeunload', () => { censorshipEditor.dispose(); viewport.dispose(); }, { once: true });
