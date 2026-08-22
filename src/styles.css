@@ -23,7 +23,6 @@ button, select { min-height: 38px; }
 .transform-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .transform-buttons button { padding: 8px; background: #2a2a2a; color: inherit; border: 1px solid #555; border-radius: 5px; }
 .studio-viewport { position: relative; flex: 1; min-height: 0; }
-
 .censorship-editor-overlay { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
 .censorship-editor-outline { position: absolute; min-width: 8px; min-height: 8px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.8), inset 0 0 0 1px rgba(255,255,255,.25); pointer-events: auto; cursor: move; touch-action: none; }
 .censorship-editor-handle { position: absolute; width: 12px; height: 12px; margin: -6px; border: 2px solid #111; background: #fff; border-radius: 2px; pointer-events: auto; touch-action: none; }
@@ -31,7 +30,10 @@ button, select { min-height: 38px; }
 .censorship-editor-handle-ne { right: 0; top: 0; cursor: nesw-resize; }
 .censorship-editor-handle-sw { left: 0; bottom: 0; cursor: nesw-resize; }
 .censorship-editor-handle-se { right: 0; bottom: 0; cursor: nwse-resize; }
-
+.censorship-editor-handle-rot { left: 50%; top: -28px; margin-left: -6px; cursor: grab; border-radius: 50%; }
+.censorship-editor-handle-rot:active { cursor: grabbing; }
+#censorship-billboard-button { min-width: 52px; padding: 4px 8px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; color: inherit; cursor: pointer; }
+#censorship-billboard-button:disabled { opacity: .45; cursor: default; }
 @media (max-width: 700px) {
   html, body, #app { height: 100dvh; }
   .studio-toolbar { min-height: 52px; padding: 6px 8px; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
