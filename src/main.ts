@@ -13,56 +13,13 @@ import { StudioViewport } from './studio/StudioViewport';
 import { SelectionController } from './studio/SelectionController';
 import { TransformController } from './studio/TransformController';
 import { getLocale, setLocale, t, type Locale } from './i18n';
+import { createPCUI } from './ui/pc/PCUI';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Application root element was not found.');
 
-app.innerHTML = `
-  <main class="studio-shell">
-    <header class="studio-toolbar">
-      <strong id="studio-title"></strong><span id="studio-mode">Studio</span>
-      <label><span id="language-label" class="sr-only"></span><select id="locale-select"><option value="ja"></option><option value="en"></option></select></label>
-      <button id="save-project-button" type="button">保存</button><button id="load-project-button" type="button">読み込み</button>
-      <input id="project-file-input" type="file" accept="application/json,.json" hidden />
-      <form id="model-form" class="model-loader-form"><input id="model-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" /><button id="load-model-button" type="submit"></button><span id="model-status" role="status" aria-live="polite"></span></form>
-    </header>
-    <aside class="studio-panel" aria-label="Studio controls">
-      <select id="model-select" aria-label="Model selection"><option value=""></option></select>
-      <select id="transform-mode" aria-label="Transform mode"><option value="translate">Move</option><option value="rotate">Rotate</option><option value="scale">Scale</option></select>
-      <div class="transform-buttons"><button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button><button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button><button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button></div>
-      <div class="camera-touch-controls" aria-label="Camera touch controls">
-        <span class="camera-touch-label">Camera</span>
-        <input id="camera-zoom" class="camera-zoom" type="range" min="0" max="1" step="0.001" value="0.5" aria-label="Camera zoom" />
-      </div>
-      <hr />
-      <button id="censorship-edit-button" type="button">検閲対象を選択</button>
-      <label>検閲モード <select id="censorship-size-mode"><option value="model">モデル追従</option><option value="screen">画面固定</option></select></label>
-      <label>Billboard <button id="censorship-billboard-button" type="button" disabled>ON</button></label>
-      <label>モザイク粒度 <input id="censorship-pixel-size" type="range" min="2" max="64" step="1" value="18" /></label>
-      <span id="censorship-status" role="status" aria-live="polite"></span>
-    </aside>
-    <section id="viewport" class="studio-viewport" aria-label="3D viewport"></section>
-  </main>`;
-
-const viewportElement = document.querySelector<HTMLElement>('#viewport')!;
-const form = document.querySelector<HTMLFormElement>('#model-form')!;
-const modelFile = document.querySelector<HTMLInputElement>('#model-file')!;
-const status = document.querySelector<HTMLSpanElement>('#model-status')!;
-const localeSelect = document.querySelector<HTMLSelectElement>('#locale-select')!;
-const title = document.querySelector<HTMLElement>('#studio-title')!;
-const languageLabel = document.querySelector<HTMLElement>('#language-label')!;
-const loadModelButton = document.querySelector<HTMLButtonElement>('#load-model-button')!;
-const saveProjectButton = document.querySelector<HTMLButtonElement>('#save-project-button')!;
-const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-project-button')!;
-const projectFileInput = document.querySelector<HTMLInputElement>('#project-file-input')!;
-const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
-const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode')!;
-const cameraZoom = document.querySelector<HTMLInputElement>('#camera-zoom')!;
-const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit-button')!;
-const censorshipStatus = document.querySelector<HTMLSpanElement>('#censorship-status')!;
-const censorshipSizeMode = document.querySelector<HTMLSelectElement>('#censorship-size-mode')!;
-const censorshipBillboardButton = document.querySelector<HTMLButtonElement>('#censorship-billboard-button')!;
-const censorshipPixelSize = document.querySelector<HTMLInputElement>('#censorship-pixel-size')!;
+const ui = createPCUI(app);
+const { viewportElement, form, modelFile, status, localeSelect, title, languageLabel, loadModelButton, saveProjectButton, loadProjectButton, projectFileInput, modelSelect, transformMode, cameraZoom, censorshipEditButton, censorshipStatus, censorshipSizeMode, censorshipBillboardButton, censorshipPixelSize } = ui;
 
 function updateUiLanguage(): void { const labels = t(); document.documentElement.lang = getLocale(); title.textContent = labels.studio.title; languageLabel.textContent = labels.settings.language; localeSelect.setAttribute('aria-label', labels.settings.language); localeSelect.options[0].textContent = labels.settings.japanese; localeSelect.options[1].textContent = labels.settings.english; localeSelect.value = getLocale(); modelFile.setAttribute('aria-label', labels.studio.modelUrl); loadModelButton.textContent = labels.studio.loadModel; }
 updateUiLanguage();
