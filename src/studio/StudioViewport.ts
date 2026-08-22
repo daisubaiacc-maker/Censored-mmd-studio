@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { StudioCameraController } from './StudioCameraController';
 
-export interface StudioViewportOptions {
-  container: HTMLElement;
-}
+export interface StudioViewportOptions { container: HTMLElement; }
 
 /** Persistent render surface shared by future Studio and first-person modes. */
 export class StudioViewport {
@@ -21,9 +19,7 @@ export class StudioViewport {
   private pointerMoved = false;
   private censorshipSelectionMode = false;
 
-  /** Called when a selectable model root is clicked in the viewport. */
   onObjectSelected: ((object: THREE.Object3D) => void) | null = null;
-  /** Called with the exact mesh hit and the world-space point that was clicked. */
   onMeshSelected: ((mesh: THREE.Mesh, hitPoint: THREE.Vector3) => void) | null = null;
 
   constructor(options: StudioViewportOptions) {
@@ -45,9 +41,9 @@ export class StudioViewport {
     this.transformControls.setSpace('world');
     this.scene.add(this.transformControls.getHelper());
 
-    this.cameraController = new StudioCameraController({
-      camera: this.camera,
-      domElement: this.renderer.domElement,
+    this.cameraController = new StudioCameraController({ camera: this.camera, domElement: this.renderer.domElement });
+    this.transformControls.addEventListener('dragging-changed', (event) => {
+      this.cameraController.setEnabled(!event.value);
     });
 
     this.resizeObserver = new ResizeObserver(() => this.resize(options.container));
@@ -55,40 +51,13 @@ export class StudioViewport {
     this.resize(options.container);
   }
 
-  addPreviewObject(object: THREE.Object3D): void {
-    this.scene.add(object);
-  }
-
-  setSelectableRoots(objects: Iterable<THREE.Object3D>): void {
-    this.selectableRoots.clear();
-    for (const object of objects) this.selectableRoots.add(object);
-  }
-
-  setCensorshipSelectionMode(enabled: boolean): void {
-    this.censorshipSelectionMode = enabled;
-  }
-
-  attachTransform(object: THREE.Object3D | null): void {
-    if (object) this.transformControls.attach(object);
-    else this.transformControls.detach();
-  }
-
-  setTransformMode(mode: 'translate' | 'rotate' | 'scale'): void {
-    this.transformControls.setMode(mode);
-  }
-
-  resize(container: HTMLElement): void {
-    const width = Math.max(1, container.clientWidth);
-    const height = Math.max(1, container.clientHeight);
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height, false);
-  }
-
-  render(): void {
-    this.scene.updateMatrixWorld(true);
-    this.renderer.render(this.scene, this.camera);
-  }
+  addPreviewObject(object: THREE.Object3D): void { this.scene.add(object); }
+  setSelectableRoots(objects: Iterable<THREE.Object3D>): void { this.selectableRoots.clear(); for (const object of objects) this.selectableRoots.add(object); }
+  setCensorshipSelectionMode(enabled: boolean): void { this.censorshipSelectionMode = enabled; }
+  attachTransform(object: THREE.Object3D | null): void { if (object) this.transformControls.attach(object); else this.transformControls.detach(); }
+  setTransformMode(mode: 'translate' | 'rotate' | 'scale'): void { this.transformControls.setMode(mode); }
+  resize(container: HTMLElement): void { const width = Math.max(1, container.clientWidth); const height = Math.max(1, container.clientHeight); this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); }
+  render(): void { this.scene.updateMatrixWorld(true); this.renderer.render(this.scene, this.camera); }
 
   dispose(): void {
     this.resizeObserver.disconnect();
@@ -118,21 +87,14 @@ export class StudioViewport {
   private readonly handlePointerUp = (event: PointerEvent): void => {
     if (event.button !== 0 || this.pointerMoved) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointer.set(
-      ((event.clientX - rect.left) / rect.width) * 2 - 1,
-      -((event.clientY - rect.top) / rect.height) * 2 + 1,
-    );
+    this.pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-
     if (this.censorshipSelectionMode) {
       const hits = this.raycaster.intersectObjects([...this.selectableRoots], true);
       const meshHit = hits.find((hit) => hit.object instanceof THREE.Mesh);
-      if (meshHit?.object instanceof THREE.Mesh && meshHit.point) {
-        this.onMeshSelected?.(meshHit.object, meshHit.point.clone());
-      }
+      if (meshHit?.object instanceof THREE.Mesh && meshHit.point) this.onMeshSelected?.(meshHit.object, meshHit.point.clone());
       return;
     }
-
     const roots = [...this.selectableRoots];
     const hits = this.raycaster.intersectObjects(roots, true);
     if (hits.length === 0) return;
@@ -141,7 +103,5 @@ export class StudioViewport {
     if (this.selectableRoots.has(selected)) this.onObjectSelected?.(selected);
   };
 
-  private readonly handleContextMenu = (event: MouseEvent): void => {
-    event.preventDefault();
-  };
+  private readonly handleContextMenu = (event: MouseEvent): void => { event.preventDefault(); };
 }
