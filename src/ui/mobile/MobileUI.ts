@@ -1,4 +1,5 @@
 import type { StudioUIElements } from '../StudioUI';
+import './mobile.css';
 
 export type MobileUIElements = StudioUIElements;
 
@@ -59,26 +60,21 @@ export function createMobileUI(app: HTMLElement): MobileUIElements {
       </section>
     </main>`;
 
+  const setMode = (mode: string): void => {
+    app.querySelectorAll<HTMLElement>('[data-mobile-panel]').forEach((panel) => {
+      panel.style.display = panel.dataset.mobilePanel === mode ? 'block' : 'none';
+    });
+    app.querySelectorAll<HTMLButtonElement>('[data-mobile-mode]').forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.mobileMode === mode);
+    });
+  };
+  app.querySelectorAll<HTMLButtonElement>('[data-mobile-mode]').forEach((button) => {
+    button.addEventListener('click', () => setMode(button.dataset.mobileMode ?? 'camera'));
+  });
+  setMode('camera');
+
   return {
     root: app,
-    viewportElement: app.querySelector<HTMLElement>('#viewport')!,
-    form: app.querySelector<HTMLFormElement>('#model-form')!,
-    modelFile: app.querySelector<HTMLInputElement>('#model-file')!,
-    status: app.querySelector<HTMLSpanElement>('#model-status')!,
-    localeSelect: app.querySelector<HTMLSelectElement>('#locale-select')!,
-    title: app.querySelector<HTMLElement>('#studio-title')!,
-    languageLabel: app.querySelector<HTMLElement>('#language-label')!,
-    loadModelButton: app.querySelector<HTMLButtonElement>('#load-model-button')!,
-    saveProjectButton: app.querySelector<HTMLButtonElement>('#save-project-button')!,
-    loadProjectButton: app.querySelector<HTMLButtonElement>('#load-project-button')!,
-    projectFileInput: app.querySelector<HTMLInputElement>('#project-file-input')!,
-    modelSelect: app.querySelector<HTMLSelectElement>('#model-select')!,
-    transformMode: app.querySelector<HTMLSelectElement>('#transform-mode')!,
-    cameraZoom: app.querySelector<HTMLInputElement>('#camera-zoom')!,
-    censorshipEditButton: app.querySelector<HTMLButtonElement>('#censorship-edit-button')!,
-    censorshipStatus: app.querySelector<HTMLSpanElement>('#censorship-status')!,
-    censorshipSizeMode: app.querySelector<HTMLSelectElement>('#censorship-size-mode')!,
-    censorshipBillboardButton: app.querySelector<HTMLButtonElement>('#censorship-billboard-button')!,
-    censorshipPixelSize: app.querySelector<HTMLInputElement>('#censorship-pixel-size')!,
+    viewportElement: app.querySelector<HTMLElement>('#viewport')!, form: app.querySelector<HTMLFormElement>('#model-form')!, modelFile: app.querySelector<HTMLInputElement>('#model-file')!, status: app.querySelector<HTMLSpanElement>('#model-status')!, localeSelect: app.querySelector<HTMLSelectElement>('#locale-select')!, title: app.querySelector<HTMLElement>('#studio-title')!, languageLabel: app.querySelector<HTMLElement>('#language-label')!, loadModelButton: app.querySelector<HTMLButtonElement>('#load-model-button')!, saveProjectButton: app.querySelector<HTMLButtonElement>('#save-project-button')!, loadProjectButton: app.querySelector<HTMLButtonElement>('#load-project-button')!, projectFileInput: app.querySelector<HTMLInputElement>('#project-file-input')!, modelSelect: app.querySelector<HTMLSelectElement>('#model-select')!, transformMode: app.querySelector<HTMLSelectElement>('#transform-mode')!, cameraZoom: app.querySelector<HTMLInputElement>('#camera-zoom')!, censorshipEditButton: app.querySelector<HTMLButtonElement>('#censorship-edit-button')!, censorshipStatus: app.querySelector<HTMLSpanElement>('#censorship-status')!, censorshipSizeMode: app.querySelector<HTMLSelectElement>('#censorship-size-mode')!, censorshipBillboardButton: app.querySelector<HTMLButtonElement>('#censorship-billboard-button')!, censorshipPixelSize: app.querySelector<HTMLInputElement>('#censorship-pixel-size')!,
   };
 }
