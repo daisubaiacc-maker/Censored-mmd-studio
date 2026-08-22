@@ -24,22 +24,17 @@ export class CensorshipRegionObject3D extends THREE.Object3D {
   }
 
   getSize(): THREE.Vector2 { return this.size.clone(); }
-
   setBillboard(enabled: boolean): void { this.billboard = enabled; }
   getBillboard(): boolean { return this.billboard; }
 
-  /**
-   * Face the camera while preserving the object's local Z rotation as a billboard roll.
-   * This keeps rotation useful even when billboard mode is enabled.
-   */
-  updateBillboard(camera: THREE.Camera): void {
+  /** Face the camera while using roll as the local rotation around the facing axis. */
+  updateBillboard(camera: THREE.Camera, roll = 0): void {
     if (!this.billboard) return;
     const cameraWorldQuaternion = camera.getWorldQuaternion(new THREE.Quaternion());
     const parentWorldInverse = this.parent
       ? this.parent.getWorldQuaternion(new THREE.Quaternion()).invert()
       : new THREE.Quaternion();
     const localCameraQuaternion = parentWorldInverse.multiply(cameraWorldQuaternion);
-    const roll = this.rotation.z;
     this.quaternion.copy(localCameraQuaternion);
     this.rotateZ(roll);
   }
