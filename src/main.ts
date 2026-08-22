@@ -33,6 +33,7 @@ app.innerHTML = `
       <hr />
       <button id="censorship-edit-button" type="button">検閲対象を選択</button>
       <label>検閲モード <select id="censorship-size-mode"><option value="model">モデル追従</option><option value="screen">画面固定</option></select></label>
+      <label>Billboard <button id="censorship-billboard-button" type="button" disabled>ON</button></label>
       <label>モザイク粒度 <input id="censorship-pixel-size" type="range" min="2" max="64" step="1" value="18" /></label>
       <span id="censorship-status" role="status" aria-live="polite"></span>
     </aside>
@@ -55,6 +56,7 @@ const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode
 const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit-button')!;
 const censorshipStatus = document.querySelector<HTMLSpanElement>('#censorship-status')!;
 const censorshipSizeMode = document.querySelector<HTMLSelectElement>('#censorship-size-mode')!;
+const censorshipBillboardButton = document.querySelector<HTMLButtonElement>('#censorship-billboard-button')!;
 const censorshipPixelSize = document.querySelector<HTMLInputElement>('#censorship-pixel-size')!;
 
 function updateUiLanguage(): void { const labels = t(); document.documentElement.lang = getLocale(); title.textContent = labels.studio.title; languageLabel.textContent = labels.settings.language; localeSelect.setAttribute('aria-label', labels.settings.language); localeSelect.options[0].textContent = labels.settings.japanese; localeSelect.options[1].textContent = labels.settings.english; localeSelect.value = getLocale(); modelFile.setAttribute('aria-label', labels.studio.modelUrl); loadModelButton.textContent = labels.studio.loadModel; }
@@ -74,6 +76,7 @@ function frameModel(model: THREE.Object3D): void { const box = new THREE.Box3().
 function syncTransformGizmo(): void { viewport.setTransformMode(transform.getMode()); viewport.attachTransform(selection.selectedObject); }
 function selectModel(model: THREE.Object3D | null): void { selection.select(model); transform.select(model); if (model) { const registered = [...modelRegistry.values()].find((entry) => entry.root === model); if (registered) modelSelect.value = registered.id; } else modelSelect.value = ''; syncTransformGizmo(); }
 function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `model-${crypto.randomUUID()}`): void { model.name = modelId; scene.add(model); modelRegistry.register(modelId, model); projectScene.registerModel(modelId, source, model.name); projectScene.captureModel(modelId); selectModel(model); refreshModelSelect(); modelSelect.value = modelId; syncTransformGizmo(); scene.updateMatrixWorld(true); frameModel(model); }
+function syncCensorshipControls(): void { const region = censorshipEditor.getSelected(); const isModel = region?.space === 'model'; censorshipBillboardButton.disabled = !isModel; censorshipBillboardButton.textContent = isModel && region?.model?.billboard ? 'ON' : 'OFF'; }
 
 viewport.onObjectSelected = selectModel;
 viewport.onMeshSelected = (mesh, hitPoint) => {
@@ -82,21 +85,18 @@ viewport.onMeshSelected = (mesh, hitPoint) => {
   let region: CensorshipRegion;
   if (censorshipSizeMode.value === 'screen') {
     region = { id: `censor-${crypto.randomUUID()}`, space: 'screen', shape: 'rectangle', effect: 'mosaic', enabled: true, pixelSize: Number(censorshipPixelSize.value), screen: { x: viewportElement.clientWidth * 0.5 - 90, y: viewportElement.clientHeight * 0.5 - 70, width: 180, height: 140 } };
-    censorshipBindings.addScreenRegion(region);
-    censorshipStatus.textContent = '登録: 画面固定 Rectangle';
+    censorshipBindings.addScreenRegion(region); censorshipStatus.textContent = '登録: 画面固定 Rectangle';
   } else {
     region = { id: `censor-${crypto.randomUUID()}`, space: 'model', shape: 'rectangle', effect: 'mosaic', enabled: true, pixelSize: Number(censorshipPixelSize.value), binding: { modelId: root.id, objectName: mesh.name, localOffset: [0, 0, 0] }, model: { position: [0, 0, 0], rotation: [0, 0, 0], width: 0.5, height: 0.4, billboard: true } };
-    censorshipBindings.bind(region, mesh, hitPoint);
-    censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle / モデル追従 / Billboard ON`;
+    censorshipBindings.bind(region, mesh, hitPoint); censorshipStatus.textContent = `登録: ${mesh.name || '(名称なし)'} / Rectangle / モデル追従 / Billboard ON`;
   }
-  censorshipEditor.select(region);
-  censorshipSelectionMode = false;
-  viewport.setCensorshipSelectionMode(false);
-  censorshipEditButton.textContent = '検閲対象を選択';
+  censorshipEditor.select(region); syncCensorshipControls(); censorshipSelectionMode = false; viewport.setCensorshipSelectionMode(false); censorshipEditButton.textContent = '検閲対象を選択';
 };
+censorshipEditor.onChange = () => syncCensorshipControls();
 
+censorshipBillboardButton.addEventListener('click', () => { const region = censorshipEditor.getSelected(); if (!region || region.space !== 'model') return; const next = !(region.model?.billboard ?? false); censorshipBindings.setBillboard(region, next); syncCensorshipControls(); censorshipStatus.textContent = `Billboard ${next ? 'ON' : 'OFF'}`; });
 censorshipPixelSize.addEventListener('input', () => { for (const region of censorshipBindings.getRegions()) region.pixelSize = Number(censorshipPixelSize.value); });
-censorshipSizeMode.addEventListener('change', () => { censorshipEditor.select(null); censorshipStatus.textContent = censorshipSizeMode.value === 'model' ? '次のクリックでモデル追従検閲を配置します' : '次のクリックで画面固定検閲を配置します'; });
+censorshipSizeMode.addEventListener('change', () => { censorshipEditor.select(null); syncCensorshipControls(); censorshipStatus.textContent = censorshipSizeMode.value === 'model' ? '次のクリックでモデル追従検閲を配置します' : '次のクリックで画面固定検閲を配置します'; });
 censorshipEditButton.addEventListener('click', () => { censorshipSelectionMode = !censorshipSelectionMode; if (censorshipSelectionMode) censorshipEditor.select(null); viewport.setCensorshipSelectionMode(censorshipSelectionMode); censorshipEditButton.textContent = censorshipSelectionMode ? '検閲対象を選択終了' : '検閲対象を選択'; censorshipStatus.textContent = censorshipSelectionMode ? 'Viewport上のメッシュをクリックしてください' : ''; });
 
 form.addEventListener('submit', async (event) => { event.preventDefault(); const file = modelFile.files?.[0]; if (!file) return; status.textContent = t().studio.loading; try { const model = await packageLoader.loadZip(file); registerLoadedModel(model, `local:${file.name}`); status.textContent = t().studio.loaded; } catch (error) { console.error(error); status.textContent = t().studio.failed; } });
