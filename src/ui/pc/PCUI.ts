@@ -1,31 +1,10 @@
-import type { Locale } from '../../i18n';
+import type { StudioUIElements } from '../StudioUI';
 
-export interface PCUIElements {
-  root: HTMLElement;
-  viewportElement: HTMLElement;
-  form: HTMLFormElement;
-  modelFile: HTMLInputElement;
-  status: HTMLSpanElement;
-  localeSelect: HTMLSelectElement;
-  title: HTMLElement;
-  languageLabel: HTMLElement;
-  loadModelButton: HTMLButtonElement;
-  saveProjectButton: HTMLButtonElement;
-  loadProjectButton: HTMLButtonElement;
-  projectFileInput: HTMLInputElement;
-  modelSelect: HTMLSelectElement;
-  transformMode: HTMLSelectElement;
-  cameraZoom: HTMLInputElement;
-  censorshipEditButton: HTMLButtonElement;
-  censorshipStatus: HTMLSpanElement;
-  censorshipSizeMode: HTMLSelectElement;
-  censorshipBillboardButton: HTMLButtonElement;
-  censorshipPixelSize: HTMLInputElement;
-}
+export type PCUIElements = StudioUIElements;
 
 export function createPCUI(app: HTMLElement): PCUIElements {
   app.innerHTML = `
-    <main class="studio-shell">
+    <main class="studio-shell studio-shell-pc">
       <header class="studio-toolbar">
         <strong id="studio-title"></strong><span id="studio-mode">Studio</span>
         <label><span id="language-label" class="sr-only"></span><select id="locale-select"><option value="ja"></option><option value="en"></option></select></label>
@@ -33,7 +12,7 @@ export function createPCUI(app: HTMLElement): PCUIElements {
         <input id="project-file-input" type="file" accept="application/json,.json" hidden />
         <form id="model-form" class="model-loader-form"><input id="model-file" type="file" accept=".zip,application/zip,application/x-zip-compressed" /><button id="load-model-button" type="submit"></button><span id="model-status" role="status" aria-live="polite"></span></form>
       </header>
-      <aside class="studio-panel" aria-label="Studio controls">
+      <aside class="studio-panel studio-panel-pc" aria-label="Studio controls">
         <select id="model-select" aria-label="Model selection"><option value=""></option></select>
         <select id="transform-mode" aria-label="Transform mode"><option value="translate">Move</option><option value="rotate">Rotate</option><option value="scale">Scale</option></select>
         <div class="transform-buttons"><button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button><button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button><button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button></div>
