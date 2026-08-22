@@ -8,7 +8,7 @@ import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
 import { saveCurrentProject, loadProjectFromFile } from './core/ProjectFileActions';
 import { MmdPackageLoader } from './mmd/MmdPackageLoader';
-import { ModelRegistry } from './mmd/ModelRegistry';
+import { ModelRegistry } from './mens/mmd/ModelRegistry';
 import { StudioViewport } from './studio/StudioViewport';
 import { SelectionController } from './studio/SelectionController';
 import { TransformController } from './studio/TransformController';
@@ -30,6 +30,10 @@ app.innerHTML = `
       <select id="model-select" aria-label="Model selection"><option value=""></option></select>
       <select id="transform-mode" aria-label="Transform mode"><option value="translate">Move</option><option value="rotate">Rotate</option><option value="scale">Scale</option></select>
       <div class="transform-buttons"><button type="button" data-axis="x" data-sign="-1">X−</button><button type="button" data-axis="x" data-sign="1">X+</button><button type="button" data-axis="y" data-sign="-1">Y−</button><button type="button" data-axis="y" data-sign="1">Y+</button><button type="button" data-axis="z" data-sign="-1">Z−</button><button type="button" data-axis="z" data-sign="1">Z+</button></div>
+      <div class="camera-touch-controls" aria-label="Camera touch controls">
+        <span class="camera-touch-label">Camera</span>
+        <input id="camera-zoom" class="camera-zoom" type="range" min="0" max="1" step="0.001" value="0.5" aria-label="Camera zoom" />
+      </div>
       <hr />
       <button id="censorship-edit-button" type="button">検閲対象を選択</button>
       <label>検閲モード <select id="censorship-size-mode"><option value="model">モデル追従</option><option value="screen">画面固定</option></select></label>
@@ -53,6 +57,7 @@ const loadProjectButton = document.querySelector<HTMLButtonElement>('#load-proje
 const projectFileInput = document.querySelector<HTMLInputElement>('#project-file-input')!;
 const modelSelect = document.querySelector<HTMLSelectElement>('#model-select')!;
 const transformMode = document.querySelector<HTMLSelectElement>('#transform-mode')!;
+const cameraZoom = document.querySelector<HTMLInputElement>('#camera-zoom')!;
 const censorshipEditButton = document.querySelector<HTMLButtonElement>('#censorship-edit-button')!;
 const censorshipStatus = document.querySelector<HTMLSpanElement>('#censorship-status')!;
 const censorshipSizeMode = document.querySelector<HTMLSelectElement>('#censorship-size-mode')!;
@@ -72,7 +77,7 @@ const packageLoader = new MmdPackageLoader(); const modelRegistry = new ModelReg
 let censorshipSelectionMode = false;
 
 function refreshModelSelect(): void { const current = modelSelect.value; modelSelect.replaceChildren(new Option(t().studio.modelUrl, '')); for (const model of modelRegistry.values()) modelSelect.add(new Option(model.id, model.id)); modelSelect.value = current; viewport.setSelectableRoots([...modelRegistry.values()].map((model) => model.root)); }
-function frameModel(model: THREE.Object3D): void { const box = new THREE.Box3().setFromObject(model); const size = box.getSize(new THREE.Vector3()); const center = box.getCenter(new THREE.Vector3()); const radius = Math.max(size.length() * 0.5, 0.5); const distance = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)); camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15); camera.lookAt(center); viewport.cameraController.syncFromCamera(center); }
+function frameModel(model: THREE.Object3D): void { const box = new THREE.Box3().setFromObject(model); const size = box.getSize(new THREE.Vector3()); const center = box.getCenter(new THREE.Vector3()); const radius = Math.max(size.length() * 0.5, 0.5); const distance = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)); camera.position.set(center.x, center.y + radius * 0.15, center.z + distance * 1.15); camera.lookAt(center); viewport.cameraController.syncFromCamera(center); cameraZoom.value = viewport.cameraController.getZoomNormalized().toFixed(3); }
 function syncTransformGizmo(): void { viewport.setTransformMode(transform.getMode()); viewport.attachTransform(selection.selectedObject); }
 function selectModel(model: THREE.Object3D | null): void { selection.select(model); transform.select(model); if (model) { const registered = [...modelRegistry.values()].find((entry) => entry.root === model); if (registered) modelSelect.value = registered.id; } else modelSelect.value = ''; syncTransformGizmo(); }
 function registerLoadedModel(model: THREE.Object3D, source: string, modelId = `model-${crypto.randomUUID()}`): void { model.name = modelId; scene.add(model); modelRegistry.register(modelId, model); projectScene.registerModel(modelId, source, model.name); projectScene.captureModel(modelId); selectModel(model); refreshModelSelect(); modelSelect.value = modelId; syncTransformGizmo(); scene.updateMatrixWorld(true); frameModel(model); }
@@ -105,6 +110,7 @@ loadProjectButton.addEventListener('click', () => projectFileInput.click());
 projectFileInput.addEventListener('change', async () => { const file = projectFileInput.files?.[0]; projectFileInput.value = ''; if (!file) return; status.textContent = 'プロジェクト読み込み中…'; try { await loadProjectFromFile(projectStore, file); const modelRef = projectStore.get().models[0]; if (!modelRef) throw new Error('Project contains no model.'); status.textContent = 'プロジェクトを読み込みました。モデルZIPを再選択してください。'; } catch (error) { console.error(error); status.textContent = 'プロジェクトの読み込みに失敗しました'; } });
 modelSelect.addEventListener('change', () => { const model = modelSelect.value ? modelRegistry.get(modelSelect.value)?.root : null; selectModel(model ?? null); });
 transformMode.addEventListener('change', () => { transform.setMode(transformMode.value as 'translate' | 'rotate' | 'scale'); syncTransformGizmo(); });
+cameraZoom.addEventListener('input', () => viewport.cameraController.setZoomNormalized(Number(cameraZoom.value)));
 viewport.transformControls.addEventListener('objectChange', () => { if (modelSelect.value) projectScene.captureModel(modelSelect.value); });
 document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => button.addEventListener('click', () => { const axis = button.dataset.axis as 'x' | 'y' | 'z'; const sign = Number(button.dataset.sign); if (!selection.selectedObject) return; const step = 0.1 * sign; if (transform.getMode() === 'translate') transform.translate(new THREE.Vector3(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0)); else if (transform.getMode() === 'rotate') transform.rotate(new THREE.Euler(axis === 'x' ? step : 0, axis === 'y' ? step : 0, axis === 'z' ? step : 0)); else transform.scale(new THREE.Vector3(axis === 'x' ? 1 + step : 1, axis === 'y' ? 1 + step : 1, axis === 'z' ? 1 + step : 1)); if (modelSelect.value) projectScene.captureModel(modelSelect.value); }));
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
