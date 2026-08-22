@@ -30,7 +30,14 @@ export class CensorshipBindingController {
   }
 
   update(camera: THREE.Camera, width: number, height: number): void {
+    // The camera controller changes camera.position immediately, while Three.js may
+    // not update matrixWorld until the render pass. Projection must use the current
+    // camera transform, otherwise the first frame after a camera move uses stale
+    // matrices. That was causing the initial no-op and apparent size jumps.
+    camera.updateMatrixWorld(true);
+
     for (const binding of this.bindings) {
+      binding.object.updateWorldMatrix(true, false);
       const worldPosition = binding.object.localToWorld(binding.localPoint.clone());
       const projected = worldPosition.project(camera);
       if (projected.z < -1 || projected.z > 1) {
@@ -42,15 +49,16 @@ export class CensorshipBindingController {
       const centerY = THREE.MathUtils.clamp(projected.y * 0.5 + 0.5, 0, 1);
 
       if (binding.region.space === 'screen') {
-        // A screen-space effect has no 3D size. Camera dolly/zoom can only move the
-        // model-relative anchor point; the effect's viewport size stays in CSS pixels.
+        // Screen-space effects are viewport objects: their dimensions are CSS pixels,
+        // so camera dolly/zoom must never change their apparent size.
         const screenWidth = binding.region.screenWidth ?? 180;
         const screenHeight = binding.region.screenHeight ?? 140;
         binding.region.width = screenWidth / Math.max(width, 1);
         binding.region.height = screenHeight / Math.max(height, 1);
       } else {
-        // A model-space effect has a real 3D size. Projecting its corners through the
-        // same perspective camera as the model makes it scale by exactly the same ratio.
+        // Model-space effects use real world dimensions. Both the model and the
+        // censorship shape are projected by this same perspective camera, so camera
+        // dolly changes their apparent size by the same ratio.
         const worldWidth = binding.region.worldWidth ?? 0.5;
         const worldHeight = binding.region.worldHeight ?? 0.4;
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
