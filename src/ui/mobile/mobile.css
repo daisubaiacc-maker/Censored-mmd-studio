@@ -1,0 +1,101 @@
+.mobile-studio-shell {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 52px minmax(0, 1fr) auto auto;
+  overflow: hidden;
+  background: #181818;
+  touch-action: none;
+}
+
+.mobile-studio-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #111;
+  border-bottom: 1px solid #333;
+  z-index: 20;
+}
+
+.mobile-studio-header button,
+.mobile-studio-header select,
+.mobile-mode-bar button,
+.mobile-context-panel button,
+.mobile-context-panel select {
+  min-height: 42px;
+  padding: 7px 10px;
+  border: 1px solid #555;
+  border-radius: 7px;
+  background: #242424;
+  color: inherit;
+  touch-action: manipulation;
+}
+
+.mobile-studio-header strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-header-actions { display: flex; gap: 4px; }
+.mobile-header-actions button { font-size: .8rem; }
+.mobile-locale select { width: 48px; }
+.mobile-studio-viewport { position: relative; min-height: 0; touch-action: none; }
+
+.mobile-zoom-control {
+  position: absolute;
+  right: 10px;
+  top: 66px;
+  bottom: 112px;
+  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.mobile-zoom-control input {
+  width: 150px;
+  transform: rotate(-90deg);
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.mobile-model-loader { position: absolute; left: 8px; right: 8px; top: 60px; display: none; z-index: 30; }
+.mobile-mode-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 6px 8px 4px;
+  background: #111;
+  z-index: 20;
+}
+.mobile-mode-button.is-active { background: #444; border-color: #aaa; }
+
+.mobile-context-panel {
+  min-height: 76px;
+  padding: 6px 8px 10px;
+  background: rgba(17,17,17,.97);
+  border-top: 1px solid #333;
+  z-index: 20;
+}
+.mobile-context-panel > div { display: none; }
+.mobile-context-panel > div[data-mobile-panel="camera"] { display: block; padding: 10px 4px; color: #bbb; font-size: .9rem; }
+.mobile-model-controls,
+.mobile-region-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mobile-model-controls > select:first-child,
+.mobile-region-controls > button:first-child,
+.mobile-region-controls > label { grid-column: 1 / -1; }
+.mobile-transform-buttons { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.mobile-transform-buttons button { min-height: 44px; }
+.mobile-region-controls input[type="range"] { width: 100%; touch-action: none; }
+.mobile-region-controls span { font-size: .8rem; color: #bbb; }
+
+@media (min-width: 701px) {
+  .mobile-studio-shell { display: none; }
+}
