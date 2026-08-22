@@ -8,7 +8,7 @@ import { ProjectSceneController } from './core/ProjectSceneController';
 import { ProjectStore } from './core/ProjectStore';
 import { saveCurrentProject, loadProjectFromFile } from './core/ProjectFileActions';
 import { MmdPackageLoader } from './mmd/MmdPackageLoader';
-import { ModelRegistry } from './mens/mmd/ModelRegistry';
+import { ModelRegistry } from './mmd/ModelRegistry';
 import { StudioViewport } from './studio/StudioViewport';
 import { SelectionController } from './studio/SelectionController';
 import { TransformController } from './studio/TransformController';
@@ -116,4 +116,4 @@ document.querySelectorAll<HTMLButtonElement>('[data-axis]').forEach((button) => 
 localeSelect.addEventListener('change', () => { setLocale(localeSelect.value as Locale); updateUiLanguage(); });
 window.addEventListener('resize', () => { viewport.resize(viewportElement); const rect = viewportElement.getBoundingClientRect(); censorship.resize(Math.max(1, rect.width), Math.max(1, rect.height)); });
 function animate(): void { requestAnimationFrame(animate); const rect = viewportElement.getBoundingClientRect(); censorshipBindings.update(camera, Math.max(1, rect.width), Math.max(1, rect.height)); censorshipEditor.update(Math.max(1, rect.width), Math.max(1, rect.height), camera); viewport.render(); censorship.render(); }
-viewport.resize(viewportElement); animate(); window.addEventListener('beforeunload', () => { censorshipEditor.dispose(); viewport.dispose(); }, { once: true });
+viewport.resize(viewportElement); cameraZoom.value = viewport.cameraController.getZoomNormalized().toFixed(3); animate(); window.addEventListener('beforeunload', () => { censorshipEditor.dispose(); viewport.dispose(); }, { once: true });
